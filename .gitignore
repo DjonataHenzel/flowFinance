@@ -1,0 +1,24 @@
+# Dependencies and local caches
+node_modules/
+.m2/
+
+# Build outputs
+target/
+dist/
+
+# Bundled local Maven installation
+apache-maven-*-bin/
+
+# Runtime logs
+*.log
+
+# IDE settings
+.vscode/
+.idea/
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Accidental Node lockfile in the Maven backend
+backend/package-lock.json

@@ -1,0 +1,37 @@
+package com.flowfinance.backend.service;
+
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import java.util.List;
+import java.util.Arrays;
+import com.flowfinance.backend.model.FuncionalidadeEnum;
+
+@Service
+public class AutenticacaoService {
+    private final JdbcTemplate jdbc;
+    private final PasswordEncoder codificadorSenha;
+
+    public AutenticacaoService(JdbcTemplate jdbc, PasswordEncoder codificadorSenha) {
+        this.jdbc = jdbc;
+        this.codificadorSenha = codificadorSenha;
+    }
+
+    public boolean autenticar(String usuario, String senha) {
+        List<String> hashes = jdbc.query(
+                "SELECT senha FROM usuario WHERE usuario = ? AND ativo = TRUE",
+                (resultado, linha) -> resultado.getString("senha"), usuario);
+        return hashes.size() == 1 && codificadorSenha.matches(senha, hashes.getFirst());
+    }
+
+    public UsuarioAutenticado dadosUsuario(String usuario) {
+        return jdbc.query("SELECT u.papel_id,p.nome FROM usuario u LEFT JOIN papeis p ON p.id=u.papel_id AND p.ativo=TRUE WHERE u.usuario=?",(r,n)->{
+            Long papelId=r.getObject(1,Long.class);
+            List<FuncionalidadeEnum> funcoes=papelId==null?Arrays.asList(FuncionalidadeEnum.values()):jdbc.query("SELECT funcionalidade FROM papel_funcionalidades WHERE papel_id=?",(f,x)->FuncionalidadeEnum.valueOf(f.getString(1)),papelId);
+            return new UsuarioAutenticado(usuario,papelId,r.getString(2),funcoes);
+        },usuario).getFirst();
+    }
+    public record UsuarioAutenticado(String usuario, Long papelId, String papel,
+            List<FuncionalidadeEnum> funcionalidades) {
+    }
+}
