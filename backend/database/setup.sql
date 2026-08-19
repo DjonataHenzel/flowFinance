@@ -11,6 +11,59 @@ CREATE TABLE IF NOT EXISTS usuario (
     usuario VARCHAR(100) NOT NULL UNIQUE,
     senha VARCHAR(100) NOT NULL,
     ativo BOOLEAN NOT NULL DEFAULT TRUE,
+    criado_em TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    notificar_conta_vencendo_whatsapp BOOLEAN NOT NULL DEFAULT FALSE,
+    notificar_conta_vencendo_ntfy BOOLEAN NOT NULL DEFAULT FALSE,
+    topico_ntfy VARCHAR(80),
+    hora_notificacao TIME NOT NULL DEFAULT '08:00',
+    dias_antecedencia INTEGER NOT NULL DEFAULT 0 CHECK (dias_antecedencia BETWEEN 0 AND 30)
+);
+
+CREATE TABLE IF NOT EXISTS contatos_whatsapp_usuario (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    usuario_id BIGINT NOT NULL REFERENCES usuario(id) ON DELETE CASCADE,
+    numero VARCHAR(16) NOT NULL,
+    UNIQUE (usuario_id, numero)
+);
+
+CREATE TABLE IF NOT EXISTS pessoas (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    nome VARCHAR(150) NOT NULL,
+    cpf VARCHAR(11),
+    cep VARCHAR(8),
+    logradouro VARCHAR(200),
+    numero VARCHAR(20),
+    complemento VARCHAR(100),
+    bairro VARCHAR(100),
+    cidade VARCHAR(100),
+    uf CHAR(2),
+    canal_preferencial VARCHAR(10) NOT NULL DEFAULT 'WHATSAPP' CHECK (canal_preferencial IN ('WHATSAPP', 'NTFY')),
+    criado_em TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (cpf)
+);
+
+CREATE TABLE IF NOT EXISTS pessoas_whatsapp (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    pessoa_id BIGINT NOT NULL REFERENCES pessoas(id) ON DELETE CASCADE,
+    numero VARCHAR(16) NOT NULL,
+    UNIQUE (pessoa_id, numero)
+);
+
+CREATE TABLE IF NOT EXISTS pessoas_ntfy (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    pessoa_id BIGINT NOT NULL REFERENCES pessoas(id) ON DELETE CASCADE,
+    topico VARCHAR(80) NOT NULL,
+    UNIQUE (pessoa_id, topico)
+);
+
+CREATE TABLE IF NOT EXISTS compromissos (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    pessoa_id BIGINT NOT NULL REFERENCES pessoas(id),
+    data_hora TIMESTAMP WITH TIME ZONE NOT NULL,
+    descricao VARCHAR(1000) NOT NULL,
+    hora_notificacao TIME NOT NULL,
+    situacao VARCHAR(12) NOT NULL DEFAULT 'PENDENTE' CHECK (situacao IN ('PENDENTE', 'RESOLVIDO', 'REAGENDADO')),
+    ultima_notificacao TIMESTAMP WITH TIME ZONE,
     criado_em TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -25,6 +78,7 @@ CREATE TABLE IF NOT EXISTS contas (
     valor_total NUMERIC(15, 2) NOT NULL CHECK (valor_total > 0),
     qtd_parcelas INTEGER NOT NULL DEFAULT 1 CHECK (qtd_parcelas > 0),
     usuario_cadastro BIGINT REFERENCES usuario(id),
+    pessoa_id BIGINT REFERENCES pessoas(id),
     tipo VARCHAR(7) NOT NULL CHECK (tipo IN ('RECEBER', 'PAGAR')),
     situacao VARCHAR(9) NOT NULL DEFAULT 'ABERTA' CHECK (situacao IN ('ABERTA', 'PAGA', 'RECEBIDA', 'PARCELADA')),
     criado_em TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -67,6 +121,16 @@ CREATE TABLE IF NOT EXISTS papel_funcionalidades (
     funcionalidade VARCHAR(60) NOT NULL,
     PRIMARY KEY (papel_id, funcionalidade)
 );
+CREATE TABLE IF NOT EXISTS historico_notificacoes (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    usuario_id BIGINT NOT NULL REFERENCES usuario(id) ON DELETE CASCADE,
+    data_referencia DATE NOT NULL,
+    canal VARCHAR(20) NOT NULL,
+    quantidade INTEGER NOT NULL,
+    mensagem TEXT NOT NULL,
+    enviado_em TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (usuario_id, data_referencia, canal)
+);
 ALTER TABLE usuario ADD COLUMN IF NOT EXISTS papel_id BIGINT REFERENCES papeis(id);
 
 -- Migração para instalações existentes.
@@ -74,6 +138,8 @@ ALTER TABLE contas ADD COLUMN IF NOT EXISTS situacao VARCHAR(9) NOT NULL DEFAULT
 ALTER TABLE contas ADD COLUMN IF NOT EXISTS qtd_parcelas INTEGER NOT NULL DEFAULT 1;
 ALTER TABLE contas ADD COLUMN IF NOT EXISTS usuario_cadastro BIGINT REFERENCES usuario(id);
 ALTER TABLE contas ADD COLUMN IF NOT EXISTS baixada_em TIMESTAMP WITH TIME ZONE;
+ALTER TABLE contas ADD COLUMN IF NOT EXISTS pessoa_id BIGINT REFERENCES pessoas(id);
+ALTER TABLE compromissos ADD COLUMN IF NOT EXISTS ultima_notificacao TIMESTAMP WITH TIME ZONE;
 ALTER TABLE parcelas_contas ADD COLUMN IF NOT EXISTS baixada_em TIMESTAMP WITH TIME ZONE;
 ALTER TABLE parcelas_contas ADD COLUMN IF NOT EXISTS observacao_baixa VARCHAR(1000);
 ALTER TABLE parcelas_contas ADD COLUMN IF NOT EXISTS situacao VARCHAR(9) NOT NULL DEFAULT 'PENDENTE';

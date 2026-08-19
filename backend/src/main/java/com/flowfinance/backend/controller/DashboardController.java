@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.format.annotation.DateTimeFormat;
 import java.time.LocalDate;
 import com.flowfinance.backend.model.SituacaoContaEnum;
+import jakarta.servlet.http.HttpSession;
 
 @RestController
 @RequestMapping("/api")
@@ -23,12 +24,13 @@ public class DashboardController {
     public ResumoFinanceiro dashboard(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataInicio,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataFim,
-            @RequestParam(required = false) SituacaoContaEnum situacao) {
+            @RequestParam(required = false) SituacaoContaEnum situacao,HttpSession sessao) {
+        String usuario=sessao.getAttribute("usuario").toString();
         if (dataInicio == null && dataFim == null && situacao == null) {
-            return service.buscarResumoMesAtual();
+            return service.buscarResumoMesAtual(usuario);
         }
         LocalDate hoje = LocalDate.now();
         return service.buscarResumo(dataInicio == null ? hoje.withDayOfMonth(1) : dataInicio,
-                dataFim == null ? hoje.withDayOfMonth(hoje.lengthOfMonth()) : dataFim, situacao);
+                dataFim == null ? hoje.withDayOfMonth(hoje.lengthOfMonth()) : dataFim, situacao,usuario);
     }
 }

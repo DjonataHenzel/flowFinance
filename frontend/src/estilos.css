@@ -109,6 +109,10 @@ button, input, select, textarea { font: inherit; }
 .texto-verde { color: #1dbf73; } .texto-vermelho { color: #ef5a5a; } .texto-azul { color: #2c7be5; }
 .formulario-movimentacao { max-width: 600px; margin: 0 auto; }
 .cabecalho-listagem { display: flex; align-items: start; justify-content: space-between; gap: 1rem; }
+.acoes-cabecalho { display:flex; align-items:center; gap:.75rem; }
+.botao-whatsapp { display:flex; align-items:center; gap:.5rem; padding:.75rem 1rem; border:0; border-radius:9px; color:#fff; background:#16a34a; font-weight:700; cursor:pointer; white-space:nowrap; }
+.botao-whatsapp:disabled { opacity:.7; cursor:wait; }
+.botao-whatsapp svg,.destinos-whatsapp svg { width:1.2rem; height:1.2rem; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
 .cabecalho-listagem h1 { margin-top: 0; }
 .botao-adicionar { padding: .75rem 1rem; border: 0; border-radius: 9px; color: #fff; background: #2c7be5; font-weight: 700; cursor: pointer; white-space: nowrap; }
 .tabela-responsiva { overflow-x: auto; }
@@ -118,10 +122,27 @@ button, input, select, textarea { font: inherit; }
 .situacao-ativa,.situacao-inativa { display: inline-block; padding: .3rem .6rem; border-radius: 999px; font-size: .8rem; font-weight: 700; }
 .situacao-ativa { color: #166534; background: #dcfce7; } .situacao-inativa { color: #991b1b; background: #fee2e2; }
 .lista-vazia { color: #64748b; text-align: center !important; }
-.acoes-formulario { display: flex; justify-content: center; align-items: center; gap: .75rem; margin-top: 1.4rem; }
+.acoes-formulario { display: flex; justify-content: flex-end; align-items: stretch; gap: .75rem; margin-top: 1.4rem; }
 .botao-secundario { padding: .85rem 1rem; border: 1px solid #cbd5e1; border-radius: 9px; color: #334155; background: #fff; cursor: pointer; }
-.botao-ajustado { width: auto; margin-top: 0; }
+.acoes-formulario .botao-primario { width: min(220px, 100%); margin-top: 0; }
+.acoes-formulario .botao-secundario { min-width: 5.5rem; }
 .ajuda-campo { display: block; margin-top: .4rem; color: #64748b; }
+.secao-notificacao { margin-top:1.5rem; padding:1.25rem; border:1px solid #dbe4f0; border-radius:12px; background:#f8fafc; }
+.secao-notificacao h2 { margin:0 0 .85rem; font-size:1.1rem; }
+.secao-notificacao > .campo-formulario { margin-bottom:.75rem; }
+.secao-notificacao .linha-contato { align-items:stretch; gap:.65rem; }
+.secao-notificacao .linha-contato .botao-adicionar { min-width:9rem; }
+.secao-notificacao > .botao-secundario { margin-top:.65rem; }
+.opcao-checkbox { display:flex; align-items:center; gap:.55rem; cursor:pointer; }
+.opcao-checkbox input { width:1rem; height:1rem; margin:0; accent-color:#2c7be5; }
+.cadastro-whatsapp { margin-top:1rem; }
+.linha-contato { display:grid; grid-template-columns:1fr auto; gap:.75rem; }
+.lista-contatos-whatsapp { margin:.8rem 0 0; padding:0; list-style:none; }
+.lista-contatos-whatsapp li { display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:.65rem 0; border-bottom:1px solid #dbe4f0; }
+.lista-contatos-whatsapp button { border:0; color:#b91c1c; background:transparent; cursor:pointer; }
+.configuracao-ntfy { margin-top:1rem; }
+.acoes-ntfy { display:flex; gap:.75rem; margin-top:.75rem; }
+.acoes-ntfy a,.acoes-ntfy button { padding:.6rem .8rem; border:1px solid #2c7be5; border-radius:8px; color:#2563eb; background:transparent; font-weight:700; text-decoration:none; cursor:pointer; }
 .painel-provisionamento { max-width: 800px; margin: 0 auto; }
 .campo-tabela { width: 100%; min-width: 140px; padding: .6rem; border: 1px solid #cbd5e1; border-radius: 7px; }
 .tabela-parcelas tfoot th { color: #12233d; font-size: .9rem; }
@@ -129,7 +150,46 @@ button, input, select, textarea { font: inherit; }
 .modal-parcelas { width: min(760px,100%); max-height: 90vh; overflow-y: auto; padding: 2rem; border-radius: 16px; background: #fff; box-shadow: 0 24px 80px rgba(0,0,0,.3); }
 .modal-parcelas h2 { margin-top: 0; }
 .modal-baixa { width:min(650px,100%); }
+.modal-whatsapp { width:min(620px,100%); }
+.previa-whatsapp { margin:1rem 0; padding:1rem; overflow:auto; border:1px solid #dbe4f0; border-radius:9px; background:#f8fafc; font:inherit; white-space:pre-wrap; }
+.destinos-whatsapp { display:grid; gap:.65rem; }
+.destinos-whatsapp button { display:flex; align-items:center; justify-content:center; gap:.5rem; padding:.8rem; border:0; border-radius:9px; color:#fff; background:#16a34a; font-weight:700; cursor:pointer; }
+.botao-copiar-whatsapp { display:block; margin:-.5rem 0 1rem auto; padding:.55rem .75rem; border:1px solid #cbd5e1; border-radius:8px; color:#334155; background:#fff; cursor:pointer; }
 .grade-baixa { display:grid; grid-template-columns:1fr 1fr; gap:0 1rem; }
+.filtros-pessoas { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto; align-items:end; gap:.75rem; margin:1.25rem 0; }
+.filtros-pessoas .rotulo-campo { margin:0; }
+.calendario-painel { max-width: 1400px; margin-left: auto; margin-right: auto; }
+.calendario-cabecalho { align-items: center; }
+.calendario-controles { display:flex; align-items:center; justify-content:center; gap:1rem; margin:1.25rem 0; }
+.calendario-controles h2 { min-width:220px; margin:0; color:#dff5ff; text-align:center; font-size:1.25rem; }
+.botao-calendario { display:grid; place-items:center; width:2.5rem; height:2.5rem; border:1px solid #3b5577; border-radius:8px; color:#dce8f8; background:#10233e; font-size:1.8rem; line-height:1; cursor:pointer; }
+.botao-calendario:hover { border-color:#38bdf8; background:#153052; }
+.calendario-grade { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); overflow:visible; border:1px solid rgba(56,189,248,.2); border-radius:12px; background:rgba(2,12,29,.42); }
+.calendario-dia-semana { padding:.75rem .6rem; border-right:1px solid rgba(148,163,184,.14); border-bottom:1px solid rgba(56,189,248,.2); color:#7dd3fc; font-size:.8rem; font-weight:700; text-align:center; text-transform:uppercase; }
+.calendario-dia-semana:nth-child(7n) { border-right:0; }
+.calendario-dia { position:relative; min-height:94px; padding:.5rem; border-right:1px solid rgba(148,163,184,.14); border-bottom:1px solid rgba(148,163,184,.14); background:rgba(6,22,44,.35); }
+.calendario-dia:nth-child(7n) { border-right:0; }
+.calendario-dia:nth-last-child(-n+7) { border-bottom:0; }
+.calendario-dia-fora { opacity:.42; }
+.calendario-dia-hoje { box-shadow:inset 0 0 0 2px rgba(56,189,248,.65); }
+.numero-dia { display:block; margin-bottom:.45rem; color:#dce8f8; font-weight:700; }
+.resumo-compromissos-dia { position:relative; }
+.indicador-compromissos { display:flex; align-items:center; gap:.35rem; width:max-content; max-width:100%; padding:.3rem .4rem; border:1px solid rgba(56,189,248,.25); border-radius:6px; color:#a9c8e8; background:rgba(14,116,144,.16); font-size:.7rem; cursor:default; }
+.pontos-compromissos { display:flex; gap:.2rem; }
+.ponto-compromisso { display:block; width:.42rem; height:.42rem; border-radius:50%; background:#38bdf8; }
+.ponto-resolvido { background:#4ade80; }
+.ponto-reagendado { background:#fbbf24; }
+.popup-compromissos-dia { position:absolute; z-index:10; top:calc(100% + .4rem); left:0; display:none; width:min(260px,calc(100vw - 2rem)); padding:.65rem; border:1px solid rgba(56,189,248,.3); border-radius:9px; background:#0a1b32; box-shadow:0 16px 34px rgba(0,0,0,.42); }
+.resumo-compromissos-dia:hover .popup-compromissos-dia,.resumo-compromissos-dia:focus-within .popup-compromissos-dia { display:grid; gap:.4rem; }
+.titulo-popup-dia { color:#7dd3fc; font-size:.78rem; }
+.item-compromisso { display:grid; gap:.1rem; width:100%; padding:.45rem; overflow:hidden; border:1px solid rgba(56,189,248,.25); border-radius:6px; color:#dce8f8; background:rgba(14,116,144,.2); text-align:left; cursor:pointer; }
+.item-compromisso:hover { border-color:#38bdf8; background:rgba(14,116,144,.35); }
+.item-compromisso strong { color:#7dd3fc; font-size:.72rem; }
+.item-compromisso span,.item-compromisso small { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.item-compromisso small { color:#a9c8e8; font-size:.7rem; }
+.item-compromisso-resolvido { border-color:rgba(74,222,128,.3); background:rgba(20,83,45,.28); }
+.item-compromisso-reagendado { border-color:rgba(251,191,36,.35); background:rgba(120,53,15,.25); }
+.botao-limpar-filtros { align-self:end; padding:.7rem .85rem; border:1px solid #cbd5e1; border-radius:8px; color:#334155; background:transparent; cursor:pointer; white-space:nowrap; }
 .campo-formulario:disabled { color:#475569; background:#f1f5f9; cursor:not-allowed; }
 .campo-observacoes { min-height:100px; resize:vertical; }
 .campo-arquivo { padding: .65rem; }
@@ -165,7 +225,7 @@ button, input, select, textarea { font: inherit; }
 .acoes-anexo svg { width:1.2rem; height:1.2rem; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
 .acoes-anexo .remover-anexo { color:#b91c1c; }
 .acoes-anexo .remover-anexo:hover { background:#fef2f2; }
-@media (max-width:650px) { .cabecalho-principal { padding: 0 1rem; } .marca { margin-right: .5rem; } .area-usuario span { display: none; } .grade-baixa { grid-template-columns:1fr; } }
+@media (max-width:650px) { .cabecalho-principal { padding: 0 1rem; } .marca { margin-right: .5rem; } .area-usuario span { display: none; } .grade-baixa,.linha-contato,.filtros-pessoas { grid-template-columns:1fr; } .cabecalho-listagem,.acoes-cabecalho { flex-direction:column; } .acoes-formulario { display:grid; grid-template-columns:1fr auto; } .acoes-formulario .botao-primario { width:100%; } .calendario-cabecalho { align-items:stretch; } .calendario-controles h2 { min-width:0; font-size:1.05rem; } .calendario-dia { min-height:72px; padding:.3rem; } .calendario-dia-semana { padding:.45rem .1rem; font-size:.65rem; } .indicador-compromissos { padding:.22rem; font-size:.62rem; } .popup-compromissos-dia { left:50%; transform:translateX(-50%); } }
 
 /* Tema tecnológico escuro */
 .pagina-home { color:#dce8f8; }
@@ -186,6 +246,9 @@ button, input, select, textarea { font: inherit; }
 .pagina-home .campo-formulario:disabled { color:#a9b9cd; background:#10233e; }
 .pagina-home .rotulo-campo { color:#b8c8da; }
 .pagina-home .secao-expansivel,.pagina-home .secao-parcelas { border-color:rgba(56,189,248,.18); background:rgba(2,12,29,.42); }
+.pagina-home .secao-notificacao { border-color:rgba(56,189,248,.18); background:rgba(2,12,29,.42); }
+.pagina-home .lista-contatos-whatsapp li { border-bottom-color:rgba(148,163,184,.16); }
+.pagina-home .previa-whatsapp { color:#dce8f8; border-color:rgba(56,189,248,.18); background:rgba(2,12,29,.42); }
 .pagina-home .cabecalho-secao { color:#dce8f8; }
 .pagina-home .botao-secundario { color:#d8e5f5; border-color:#3b5577; background:#10233e; }
 .pagina-home .botao-secundario:hover { border-color:#38bdf8; background:#153052; }
@@ -201,6 +264,7 @@ button, input, select, textarea { font: inherit; }
 .pagina-home .fechar-menu-contexto { background:rgba(0,0,0,.08); }
 .filtros-contas { display:grid; grid-template-columns:minmax(180px,1.6fr) minmax(120px,.8fr) minmax(145px,1fr) minmax(155px,1fr) auto; align-items:end; gap:.75rem; margin:1.25rem 0 .75rem; padding:1rem; border:1px solid rgba(56,189,248,.14); border-radius:12px; background:rgba(2,12,29,.35); }
 .filtros-usuarios { grid-template-columns:minmax(240px,1.5fr) minmax(180px,1fr) auto; }
+.filtros-contas.filtros-pessoas { grid-template-columns:minmax(180px,1fr) minmax(180px,1fr) auto; }
 .filtros-contas .rotulo-campo { margin:0; color:#7dd3fc; }
 .filtros-contas .campo-formulario { margin-top:.4rem; }
 .botao-limpar-filtros { padding:.8rem .9rem; border:1px solid #3b5577; border-radius:9px; color:#a9c8e8; background:#10233e; cursor:pointer; white-space:nowrap; }
@@ -212,7 +276,7 @@ button, input, select, textarea { font: inherit; }
 .pagina-home .valor-conta { color:#7dd3fc; font-weight:600; }
 .pagina-home .cartao-resumo p { color:#93c5fd; }
 .pagina-home .menu-principal .botao-menu:hover,.pagina-home .marca:hover { color:#7dd3fc; }
-@media (max-width:900px) { .filtros-contas { grid-template-columns:1fr 1fr; } .botao-limpar-filtros { align-self:end; } }
+@media (max-width:900px) { .filtros-contas { grid-template-columns:1fr 1fr; } .filtros-contas.filtros-pessoas { grid-template-columns:1fr 1fr auto; } .botao-limpar-filtros { align-self:end; } }
 @media (max-width:520px) { .filtros-contas { grid-template-columns:1fr; } }
 .formulario-permissao { max-width:850px; margin:0 auto; }
 .secao-funcoes { margin-top:1.25rem; padding:1rem; border:1px solid rgba(56,189,248,.18); border-radius:12px; background:rgba(2,12,29,.35); }

@@ -13,7 +13,7 @@ export default function ViewResumoFinanceiro(){
   useEffect(()=>{consultar()},[]);
   function enviar(evento:FormEvent){evento.preventDefault();if(dataFim<dataInicio){setErro('A data final não pode ser anterior à data inicial.');return}consultar()}
   return <section className="resumo-financeiro">
-    <div className="cabecalho-painel"><div><h1>Resumo financeiro</h1><p className="subtitulo">Totais calculados pela data de vencimento das parcelas.</p></div></div>
+    <div className="cabecalho-painel"><div><h1>Resumo financeiro</h1><p className="subtitulo">Totais calculados pela data de pagamento das parcelas baixadas e pelo vencimento das pendentes.</p></div></div>
     <form className="filtros-resumo" onSubmit={enviar}>
       <label className="rotulo-campo">Data inicial<input className="campo-formulario" type="date" value={dataInicio} onChange={e=>setDataInicio(e.target.value)} required/></label>
       <label className="rotulo-campo">Data final<input className="campo-formulario" type="date" value={dataFim} onChange={e=>setDataFim(e.target.value)} required/></label>

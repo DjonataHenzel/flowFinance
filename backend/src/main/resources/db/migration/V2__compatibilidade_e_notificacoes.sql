@@ -1,0 +1,10 @@
+ALTER TABLE usuario ADD COLUMN IF NOT EXISTS papel_id BIGINT REFERENCES papeis(id);
+ALTER TABLE usuario ADD COLUMN IF NOT EXISTS notificar_conta_vencendo_whatsapp BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE usuario ADD COLUMN IF NOT EXISTS notificar_conta_vencendo_ntfy BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE usuario ADD COLUMN IF NOT EXISTS topico_ntfy VARCHAR(80);
+ALTER TABLE usuario ADD COLUMN IF NOT EXISTS hora_notificacao TIME NOT NULL DEFAULT '08:00';
+ALTER TABLE usuario ADD COLUMN IF NOT EXISTS dias_antecedencia INTEGER NOT NULL DEFAULT 0 CHECK(dias_antecedencia BETWEEN 0 AND 30);
+CREATE TABLE IF NOT EXISTS contatos_whatsapp_usuario (id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,usuario_id BIGINT NOT NULL REFERENCES usuario(id) ON DELETE CASCADE,numero VARCHAR(16) NOT NULL,UNIQUE(usuario_id,numero));
+CREATE TABLE IF NOT EXISTS historico_notificacoes (id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,usuario_id BIGINT NOT NULL REFERENCES usuario(id) ON DELETE CASCADE,data_referencia DATE NOT NULL,canal VARCHAR(20) NOT NULL,quantidade INTEGER NOT NULL,mensagem TEXT NOT NULL,enviado_em TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,UNIQUE(usuario_id,data_referencia,canal));
+CREATE INDEX IF NOT EXISTS idx_contas_usuario ON contas(usuario_cadastro);
+CREATE INDEX IF NOT EXISTS idx_parcelas_vencimento_situacao ON parcelas_contas(data_vencimento,situacao);

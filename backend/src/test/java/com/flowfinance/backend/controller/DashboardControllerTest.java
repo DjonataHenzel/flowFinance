@@ -26,9 +26,9 @@ class DashboardControllerTest {
 
     @Test
     void shouldReturnDashboardSummary() throws Exception {
-        when(dashboardService.buscarResumoMesAtual()).thenReturn(new ResumoFinanceiro(
+        when(dashboardService.buscarResumoMesAtual("admin")).thenReturn(new ResumoFinanceiro(
                 "Agosto", new BigDecimal("18500.00"), new BigDecimal("9200.00"), new BigDecimal("9300.00")));
-        mockMvc.perform(get("/api/dashboard"))
+        mockMvc.perform(get("/api/dashboard").sessionAttr("usuario","admin"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.month").exists())
                 .andExpect(jsonPath("$.totalIncome").value(18500.0));

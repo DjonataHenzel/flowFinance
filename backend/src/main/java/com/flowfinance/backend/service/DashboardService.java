@@ -17,12 +17,12 @@ public class DashboardService {
         this.jdbc = jdbc;
     }
 
-    public ResumoFinanceiro buscarResumoMesAtual() {
+    public ResumoFinanceiro buscarResumoMesAtual(String usuario) {
         LocalDate hoje = LocalDate.now();
-        return buscarResumo(hoje.withDayOfMonth(1), hoje.withDayOfMonth(hoje.lengthOfMonth()), null);
+        return buscarResumo(hoje.withDayOfMonth(1), hoje.withDayOfMonth(hoje.lengthOfMonth()), null,usuario);
     }
 
-    public ResumoFinanceiro buscarResumo(LocalDate dataInicio, LocalDate dataFim, SituacaoContaEnum situacao) {
+    public ResumoFinanceiro buscarResumo(LocalDate dataInicio, LocalDate dataFim, SituacaoContaEnum situacao,String usuario) {
         if (dataFim.isBefore(dataInicio))
             throw new IllegalArgumentException("A data final não pode ser anterior à data inicial.");
         Totais totais = jdbc.queryForObject("""
@@ -30,10 +30,12 @@ public class DashboardService {
                        COALESCE(SUM(p.valor) FILTER (WHERE c.tipo = 'PAGAR'), 0)
                  FROM parcelas_contas p
                   JOIN contas c ON c.id = p.conta_id
-                 WHERE p.data_vencimento BETWEEN ? AND ?
+                  JOIN usuario u ON u.id = c.usuario_cadastro
+                 WHERE COALESCE(CAST(p.baixada_em AS DATE), p.data_vencimento) BETWEEN ? AND ?
                    AND (CAST(? AS VARCHAR) IS NULL OR c.situacao = ?)
+                   AND u.usuario = ?
                 """, (resultado, linha) -> new Totais(resultado.getBigDecimal(1), resultado.getBigDecimal(2)),
-                dataInicio, dataFim, situacao == null ? null : situacao.name(), situacao == null ? null : situacao.name());
+                dataInicio, dataFim, situacao == null ? null : situacao.name(), situacao == null ? null : situacao.name(),usuario);
         BigDecimal receitas = totais == null ? BigDecimal.ZERO : totais.receitas();
         BigDecimal despesas = totais == null ? BigDecimal.ZERO : totais.despesas();
         String periodo = dataInicio.format(DATA_BRASILEIRA) + " a " + dataFim.format(DATA_BRASILEIRA);

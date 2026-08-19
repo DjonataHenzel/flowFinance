@@ -31,6 +31,15 @@ public class AutenticacaoService {
             return new UsuarioAutenticado(usuario,papelId,r.getString(2),funcoes);
         },usuario).getFirst();
     }
+    public boolean temPermissao(String usuario, FuncionalidadeEnum funcionalidade) {
+        Integer quantidade = jdbc.queryForObject("""
+                SELECT COUNT(*) FROM usuario u
+                 LEFT JOIN papeis p ON p.id=u.papel_id AND p.ativo=TRUE
+                 LEFT JOIN papel_funcionalidades pf ON pf.papel_id=p.id AND pf.funcionalidade=?
+                WHERE u.usuario=? AND u.ativo=TRUE AND (u.papel_id IS NULL OR pf.funcionalidade IS NOT NULL)
+                """, Integer.class, funcionalidade.name(), usuario);
+        return quantidade != null && quantidade > 0;
+    }
     public record UsuarioAutenticado(String usuario, Long papelId, String papel,
             List<FuncionalidadeEnum> funcionalidades) {
     }
