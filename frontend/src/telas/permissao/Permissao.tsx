@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useState } from "react";
-import { alterarPapel, cadastrarPapel, listarFuncionalidades } from "../api";
-import type { Funcionalidade, PapelDetalhe } from "../api";
+import { alterarPapel, cadastrarPapel, listarFuncionalidades } from "../../api";
+import type { Funcionalidade, PapelDetalhe } from "../../api";
 
 const rotulos: Record<Funcionalidade, string> = {
   VISUALIZAR_DASHBOARD: "Visualizar",
@@ -11,6 +11,14 @@ const rotulos: Record<Funcionalidade, string> = {
   ESTORNAR_BAIXAS: "Estornar baixa",
   DUPLICAR_CONTAS: "Duplicar",
   EXCLUIR_CONTAS: "Excluir",
+  CONSULTAR_CONTAS_BANCARIAS: "Consultar",
+  CADASTRAR_CONTAS_BANCARIAS: "Cadastrar",
+  ALTERAR_CONTAS_BANCARIAS: "Alterar",
+  EXCLUIR_CONTAS_BANCARIAS: "Excluir",
+  CONSULTAR_CATEGORIAS: "Consultar",
+  CADASTRAR_CATEGORIAS: "Cadastrar",
+  ALTERAR_CATEGORIAS: "Alterar",
+  EXCLUIR_CATEGORIAS: "Excluir",
   CONSULTAR_USUARIOS: "Consultar",
   CADASTRAR_USUARIOS: "Cadastrar",
   ALTERAR_USUARIOS: "Alterar",
@@ -38,6 +46,14 @@ const grupos: { titulo: string; funcoes: Funcionalidade[] }[] = [
       "DUPLICAR_CONTAS",
       "EXCLUIR_CONTAS",
     ],
+  },
+  {
+    titulo: "Contas bancárias",
+    funcoes: ["CONSULTAR_CONTAS_BANCARIAS","CADASTRAR_CONTAS_BANCARIAS","ALTERAR_CONTAS_BANCARIAS","EXCLUIR_CONTAS_BANCARIAS"],
+  },
+  {
+    titulo: "Categorias",
+    funcoes: ["CONSULTAR_CATEGORIAS", "CADASTRAR_CATEGORIAS", "ALTERAR_CATEGORIAS", "EXCLUIR_CATEGORIAS"],
   },
   {
     titulo: "Usuários",

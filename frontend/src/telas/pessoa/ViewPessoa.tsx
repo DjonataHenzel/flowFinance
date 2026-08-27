@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { excluirPessoa, listarPessoas } from "../api";
-import type { PessoaResumo } from "../api";
+import { excluirPessoa, listarPessoas } from "../../api";
+import type { PessoaResumo } from "../../api";
 import Pessoa from "./Pessoa";
 function formatarCpf(valor: string) {
   const digitos = valor.replace(/\D/g, "").slice(0, 11);

@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useState } from "react";
-import { alterarPessoa, buscarPessoa, cadastrarPessoa } from "../api";
-import type { NovaPessoa, PessoaResumo } from "../api";
+import { alterarPessoa, buscarPessoa, cadastrarPessoa } from "../../api";
+import type { NovaPessoa } from "../../api";
 const vazio: NovaPessoa = {
   nome: "",
   cpf: "",

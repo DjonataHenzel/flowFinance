@@ -1,13 +1,17 @@
 import { useState } from "react";
-import type { Funcionalidade } from "../api";
-import Movimentacao from "./Movimentacao";
-import ViewContas from "./ViewContas";
-import ViewPermissoes from "./ViewPermissoes";
-import ViewUsuario from "./ViewUsuario";
+import type { Funcionalidade } from "../../api";
+import MovimentacaoFinanceira from "../movimentacao-financeira/MovimentacaoFinanceira";
+import ViewMovimentacaoFinanceira from "../movimentacao-financeira/ViewMovimentacaoFinanceira";
+import ViewPermissoes from "../permissao/ViewPermissoes";
+import ViewUsuario from "../usuario/ViewUsuario";
 import ViewResumoFinanceiro from "./ViewResumoFinanceiro";
-import ViewPessoa from "./ViewPessoa";
-import ViewCompromissos from "./ViewCompromissos";
-import ViewCalendarioCompromissos from "./ViewCalendarioCompromissos";
+import ViewPessoa from "../pessoa/ViewPessoa";
+import ViewCompromissos from "../compromisso/ViewCompromissos";
+import ViewCalendarioCompromissos from "../compromisso/ViewCalendarioCompromissos";
+import ViewRelatorioContas from "../movimentacao-financeira/ViewRelatorioContas";
+import ViewRelatorioCompromissos from "../compromisso/ViewRelatorioCompromissos";
+import ViewContasBancarias from "../conta-bancaria/ViewContasBancarias";
+import ViewCategorias from "../categoria/ViewCategorias";
 
 type Tela =
   | "inicio"
@@ -19,7 +23,11 @@ type Tela =
   | "permissao"
   | "pessoa"
   | "compromisso"
-  | "calendarioCompromisso";
+  | "calendarioCompromisso"
+  | "relatorioContas"
+  | "relatorioCompromissos"
+  | "contaBancaria"
+  | "categoria";
 
 export default function Home({
   usuario,
@@ -44,7 +52,9 @@ export default function Home({
   const temFerramentas =
     tem("CONSULTAR_USUARIOS") ||
     tem("GERENCIAR_PERMISSOES") ||
-    tem("CONSULTAR_PESSOAS");
+    tem("CONSULTAR_PESSOAS") ||
+    tem("CONSULTAR_CONTAS_BANCARIAS") ||
+    tem("CONSULTAR_CATEGORIAS");
   function abrir(t: Tela) {
     setTela(t);
     setMenu(null);
@@ -99,6 +109,16 @@ export default function Home({
                       </button>
                     </>
                   )}
+                  {tem("CONSULTAR_CONTAS") && (
+                    <>
+                      <span className="titulo-submenu titulo-grupo-menu">
+                        Relatórios
+                      </span>
+                      <button onClick={() => abrir("relatorioContas")}>
+                        Relatório de contas mensal
+                      </button>
+                    </>
+                  )}
                 </div>
               )}
             </div>
@@ -120,6 +140,14 @@ export default function Home({
                   )}
                   {tem("CONSULTAR_PESSOAS") && (
                     <button onClick={() => abrir("pessoa")}>Pessoas</button>
+                  )}
+                  {tem("CONSULTAR_CONTAS_BANCARIAS") && (
+                    <button onClick={() => abrir("contaBancaria")}>
+                      Contas bancárias
+                    </button>
+                  )}
+                  {tem("CONSULTAR_CATEGORIAS") && (
+                    <button onClick={() => abrir("categoria")}>Categorias</button>
                   )}
                   {tem("GERENCIAR_PERMISSOES") && (
                     <button onClick={() => abrir("permissao")}>
@@ -147,6 +175,9 @@ export default function Home({
                   <button onClick={() => abrir("calendarioCompromisso")}>
                     Calendário compromissos
                   </button>
+                  <button onClick={() => abrir("relatorioCompromissos")}>
+                    Relatório de compromissos por período
+                  </button>
                 </div>
               )}
             </div>
@@ -167,7 +198,7 @@ export default function Home({
           <ViewResumoFinanceiro />
         )}
         {tela === "consultar" && tem("CONSULTAR_CONTAS") && (
-          <ViewContas
+          <ViewMovimentacaoFinanceira
             aoNovo={novaConta}
             aoEditar={editar}
             aoDuplicar={duplicar}
@@ -175,7 +206,7 @@ export default function Home({
           />
         )}
         {(tela === "entrada" || tela === "saida") && (
-          <Movimentacao
+          <MovimentacaoFinanceira
             tipo={tela === "entrada" ? "RECEBER" : "PAGAR"}
             contaId={edicao}
             origemId={origemCopia}
@@ -189,11 +220,23 @@ export default function Home({
           <ViewPermissoes />
         )}
         {tela === "pessoa" && tem("CONSULTAR_PESSOAS") && <ViewPessoa />}
+        {tela === "contaBancaria" && tem("CONSULTAR_CONTAS_BANCARIAS") && (
+          <ViewContasBancarias funcionalidades={funcionalidades} />
+        )}
+        {tela === "categoria" && tem("CONSULTAR_CATEGORIAS") && (
+          <ViewCategorias funcionalidades={funcionalidades} />
+        )}
         {tela === "compromisso" && tem("CONSULTAR_COMPROMISSOS") && (
           <ViewCompromissos />
         )}
         {tela === "calendarioCompromisso" && tem("CONSULTAR_COMPROMISSOS") && (
           <ViewCalendarioCompromissos />
+        )}
+        {tela === "relatorioContas" && tem("CONSULTAR_CONTAS") && (
+          <ViewRelatorioContas />
+        )}
+        {tela === "relatorioCompromissos" && tem("CONSULTAR_COMPROMISSOS") && (
+          <ViewRelatorioCompromissos />
         )}
       </main>
     </div>

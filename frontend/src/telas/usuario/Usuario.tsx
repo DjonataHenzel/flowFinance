@@ -1,31 +1,6 @@
 import { FormEvent, useEffect, useState } from "react";
-import { alterarUsuario, cadastrarUsuario, listarPapeis } from "../api";
-import type { PapelResumo, UsuarioResumo } from "../api";
-
-function somenteNumeroBrasileiro(valor: string) {
-  const digitos = valor.replace(/\D/g, "").slice(0, 11);
-  if (digitos.length <= 2) return digitos ? `(${digitos}` : "";
-
-  const ddd = digitos.slice(0, 2),
-    numero = digitos.slice(2);
-
-  if (numero.length <= 4) return `(${ddd}) ${numero}`;
-
-  return `(${ddd}) ${numero.slice(0, -4)}-${numero.slice(-4)}`;
-}
-
-function exibirContato(numero: string) {
-  const digitos = numero.replace(/\D/g, "");
-  const nacional =
-    (digitos.length === 12 || digitos.length === 13) && digitos.startsWith("55")
-      ? digitos.slice(2)
-      : digitos;
-  return somenteNumeroBrasileiro(nacional);
-}
-
-function gerarTopicoNtfy() {
-  return `flowfinance-${crypto.randomUUID().replace(/-/g, "")}`;
-}
+import { alterarUsuario, cadastrarUsuario, listarPapeis } from "../../api";
+import type { PapelResumo, UsuarioResumo } from "../../api";
 
 export default function Usuario({
   registro,
@@ -40,6 +15,7 @@ export default function Usuario({
     [senha, setSenha] = useState(""),
     [confirmacao, setConfirmacao] = useState(""),
     [ativo, setAtivo] = useState(registro?.ativo ?? true),
+    [visualizarTodos, setVisualizarTodos] = useState(registro?.visualizarCadastrosTodosUsuarios ?? false),
     [papelId, setPapelId] = useState(
       registro?.papelId ? String(registro.papelId) : "",
     ),
@@ -81,6 +57,7 @@ export default function Usuario({
             "",
             "08:00",
             0,
+            visualizarTodos,
           )
         : await cadastrarUsuario(
             usuario,
@@ -92,6 +69,7 @@ export default function Usuario({
             "",
             "08:00",
             0,
+            visualizarTodos,
           );
       aoSalvar();
     } catch (f) {
@@ -164,6 +142,14 @@ export default function Usuario({
           Usuário ativo
         </label>
       )}
+      <label className="rotulo-campo opcao-checkbox">
+        <input
+          type="checkbox"
+          checked={visualizarTodos}
+          onChange={(e) => setVisualizarTodos(e.target.checked)}
+        />{" "}
+        Visualizar cadastro de todos os usuários
+      </label>
       {erro && <p className="mensagem-erro">{erro}</p>}
       <div className="acoes-formulario">
         <button

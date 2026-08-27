@@ -22,7 +22,8 @@ public class AutorizacaoInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws IOException {
-        if (autenticacao == null || "OPTIONS".equals(request.getMethod()) || request.getRequestURI().startsWith("/api/autenticacao/")) return true;
+        if ("OPTIONS".equals(request.getMethod()) || request.getRequestURI().startsWith("/api/autenticacao/")) return true;
+        if (autenticacao == null) return erro(response, 503, "Serviço de autorização indisponível.");
         Object usuario = request.getSession(false) == null ? null : request.getSession(false).getAttribute("usuario");
         if (usuario == null) return erro(response, 401, "Sessão expirada. Entre novamente.");
         FuncionalidadeEnum necessaria = funcionalidadeNecessaria(request);
@@ -34,9 +35,13 @@ public class AutorizacaoInterceptor implements HandlerInterceptor {
     private FuncionalidadeEnum funcionalidadeNecessaria(HttpServletRequest request) {
         String caminho = request.getRequestURI(), metodo = request.getMethod();
         if (caminho.equals("/api/dashboard")) return FuncionalidadeEnum.VISUALIZAR_DASHBOARD;
+        if (caminho.equals("/api/relatorios/contas")) return FuncionalidadeEnum.CONSULTAR_CONTAS;
+        if (caminho.equals("/api/relatorios/compromissos")) return FuncionalidadeEnum.CONSULTAR_COMPROMISSOS;
         if (caminho.startsWith("/api/permissoes")) return FuncionalidadeEnum.GERENCIAR_PERMISSOES;
         if (caminho.startsWith("/api/usuarios")) return Map.of("GET",FuncionalidadeEnum.CONSULTAR_USUARIOS,"POST",FuncionalidadeEnum.CADASTRAR_USUARIOS,"PUT",FuncionalidadeEnum.ALTERAR_USUARIOS,"DELETE",FuncionalidadeEnum.EXCLUIR_USUARIOS).get(metodo);
         if (caminho.startsWith("/api/pessoas")) return Map.of("GET",FuncionalidadeEnum.CONSULTAR_PESSOAS,"POST",FuncionalidadeEnum.CADASTRAR_PESSOAS,"PUT",FuncionalidadeEnum.ALTERAR_PESSOAS,"DELETE",FuncionalidadeEnum.EXCLUIR_PESSOAS).get(metodo);
+        if (caminho.startsWith("/api/contas-bancarias")) return Map.of("GET",FuncionalidadeEnum.CONSULTAR_CONTAS_BANCARIAS,"POST",FuncionalidadeEnum.CADASTRAR_CONTAS_BANCARIAS,"PUT",FuncionalidadeEnum.ALTERAR_CONTAS_BANCARIAS,"DELETE",FuncionalidadeEnum.EXCLUIR_CONTAS_BANCARIAS).get(metodo);
+        if (caminho.startsWith("/api/categorias")) return Map.of("GET",FuncionalidadeEnum.CONSULTAR_CATEGORIAS,"POST",FuncionalidadeEnum.CADASTRAR_CATEGORIAS,"PUT",FuncionalidadeEnum.ALTERAR_CATEGORIAS,"DELETE",FuncionalidadeEnum.EXCLUIR_CATEGORIAS).get(metodo);
         if (caminho.startsWith("/api/compromissos")) return Map.of("GET",FuncionalidadeEnum.CONSULTAR_COMPROMISSOS,"POST",FuncionalidadeEnum.CADASTRAR_COMPROMISSOS,"PUT",FuncionalidadeEnum.ALTERAR_COMPROMISSOS,"DELETE",FuncionalidadeEnum.EXCLUIR_COMPROMISSOS).get(metodo);
         if (!caminho.startsWith("/api/contas")) return null;
         if ("GET".equals(metodo) || caminho.endsWith("/notificar")) return FuncionalidadeEnum.CONSULTAR_CONTAS;

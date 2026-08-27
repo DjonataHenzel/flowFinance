@@ -29,7 +29,7 @@ public class NotificacaoAgendadaService {
                 """,(r,n)->new UsuarioAgendado(r.getLong(1),r.getString(2)),agora,LocalDate.now());
         for(UsuarioAgendado usuario:usuarios) try {
             ContaService.ResultadoNotificacao resultado=contas.enviarNotificacaoNtfy(usuario.nome());
-            jdbc.update("INSERT INTO historico_notificacoes(usuario_id,data_referencia,canal,quantidade,mensagem) VALUES(?,?,'NTFY',?,?) ON CONFLICT DO NOTHING",
+            if(resultado.enviado())jdbc.update("INSERT INTO historico_notificacoes(usuario_id,data_referencia,canal,quantidade,mensagem) VALUES(?,?,'NTFY',?,?) ON CONFLICT DO NOTHING",
                     usuario.id(),LocalDate.now(),resultado.quantidade(),resultado.mensagem());
         } catch (RuntimeException exception) {
             // Uma falha temporária será tentada novamente no próximo minuto.

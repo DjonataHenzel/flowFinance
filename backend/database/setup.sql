@@ -16,7 +16,8 @@ CREATE TABLE IF NOT EXISTS usuario (
     notificar_conta_vencendo_ntfy BOOLEAN NOT NULL DEFAULT FALSE,
     topico_ntfy VARCHAR(80),
     hora_notificacao TIME NOT NULL DEFAULT '08:00',
-    dias_antecedencia INTEGER NOT NULL DEFAULT 0 CHECK (dias_antecedencia BETWEEN 0 AND 30)
+    dias_antecedencia INTEGER NOT NULL DEFAULT 0 CHECK (dias_antecedencia BETWEEN 0 AND 30),
+    visualizar_cadastros_todos_usuarios BOOLEAN NOT NULL DEFAULT FALSE
 );
 
 CREATE TABLE IF NOT EXISTS contatos_whatsapp_usuario (
@@ -132,6 +133,23 @@ CREATE TABLE IF NOT EXISTS historico_notificacoes (
     UNIQUE (usuario_id, data_referencia, canal)
 );
 ALTER TABLE usuario ADD COLUMN IF NOT EXISTS papel_id BIGINT REFERENCES papeis(id);
+ALTER TABLE usuario ADD COLUMN IF NOT EXISTS visualizar_cadastros_todos_usuarios BOOLEAN NOT NULL DEFAULT FALSE;
+
+CREATE TABLE IF NOT EXISTS contas_pessoas_notificacao (
+    conta_id BIGINT NOT NULL REFERENCES contas(id) ON DELETE CASCADE,
+    pessoa_id BIGINT NOT NULL REFERENCES pessoas(id) ON DELETE CASCADE,
+    PRIMARY KEY (conta_id, pessoa_id)
+);
+INSERT INTO contas_pessoas_notificacao(conta_id,pessoa_id)
+SELECT id,pessoa_id FROM contas WHERE pessoa_id IS NOT NULL ON CONFLICT DO NOTHING;
+
+CREATE TABLE IF NOT EXISTS compromissos_pessoas_notificacao (
+    compromisso_id BIGINT NOT NULL REFERENCES compromissos(id) ON DELETE CASCADE,
+    pessoa_id BIGINT NOT NULL REFERENCES pessoas(id) ON DELETE CASCADE,
+    PRIMARY KEY (compromisso_id, pessoa_id)
+);
+INSERT INTO compromissos_pessoas_notificacao(compromisso_id,pessoa_id)
+SELECT id,pessoa_id FROM compromissos WHERE pessoa_id IS NOT NULL ON CONFLICT DO NOTHING;
 
 -- Migração para instalações existentes.
 ALTER TABLE contas ADD COLUMN IF NOT EXISTS situacao VARCHAR(9) NOT NULL DEFAULT 'ABERTA';
@@ -140,6 +158,8 @@ ALTER TABLE contas ADD COLUMN IF NOT EXISTS usuario_cadastro BIGINT REFERENCES u
 ALTER TABLE contas ADD COLUMN IF NOT EXISTS baixada_em TIMESTAMP WITH TIME ZONE;
 ALTER TABLE contas ADD COLUMN IF NOT EXISTS pessoa_id BIGINT REFERENCES pessoas(id);
 ALTER TABLE compromissos ADD COLUMN IF NOT EXISTS ultima_notificacao TIMESTAMP WITH TIME ZONE;
+ALTER TABLE compromissos DROP CONSTRAINT IF EXISTS compromissos_situacao_check;
+ALTER TABLE compromissos ADD CONSTRAINT compromissos_situacao_check CHECK (situacao IN ('PENDENTE','RESOLVIDO','REAGENDADO','CONCLUIDO','NOTIFICADO'));
 ALTER TABLE parcelas_contas ADD COLUMN IF NOT EXISTS baixada_em TIMESTAMP WITH TIME ZONE;
 ALTER TABLE parcelas_contas ADD COLUMN IF NOT EXISTS observacao_baixa VARCHAR(1000);
 ALTER TABLE parcelas_contas ADD COLUMN IF NOT EXISTS situacao VARCHAR(9) NOT NULL DEFAULT 'PENDENTE';

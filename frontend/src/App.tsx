@@ -1,12 +1,14 @@
 import { useEffect,useState } from 'react';
-import Home from './telas/Home';
-import Login from './telas/Login';
+import Home from './telas/dashboard/Home';
+import Login from './telas/autenticacao/Login';
 import type { RespostaLogin } from './types';
-import {sair} from './api';
+import {buscarSessao,sair} from './api';
 
 export default function App() {
   const [sessao, setSessao] = useState<RespostaLogin | null>(null);
-  useEffect(()=>{const expirar=()=>setSessao(null);window.addEventListener('flowfinance:sessao-expirada',expirar);return()=>window.removeEventListener('flowfinance:sessao-expirada',expirar)},[]);
+  const [verificandoSessao,setVerificandoSessao]=useState(true);
+  useEffect(()=>{const expirar=()=>setSessao(null);window.addEventListener('flowfinance:sessao-expirada',expirar);buscarSessao().then(setSessao).catch(()=>setSessao(null)).finally(()=>setVerificandoSessao(false));return()=>window.removeEventListener('flowfinance:sessao-expirada',expirar)},[]);
+  if(verificandoSessao)return <main className="pagina-login"><p>Carregando...</p></main>;
   return sessao
     ? <Home usuario={sessao.usuario} funcionalidades={sessao.funcionalidades} aoSair={() => {sair().finally(()=>setSessao(null))}} />
     : <Login aoAutenticar={setSessao} />;

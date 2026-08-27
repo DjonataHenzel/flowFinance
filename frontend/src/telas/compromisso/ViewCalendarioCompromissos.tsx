@@ -1,10 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import {
-  duplicarCompromisso,
-  excluirCompromisso,
-  listarCompromissos,
-} from "../api";
-import type { CompromissoResumo } from "../api";
+import { excluirCompromisso, listarCompromissos } from "../../api";
+import type { CompromissoResumo } from "../../api";
 import Compromisso from "./Compromisso";
 
 const nomesMeses = [
@@ -240,8 +236,12 @@ export default function ViewCalendarioCompromissos() {
                         </strong>
                         <span>{compromisso.descricao}</span>
                         <small>
-                          {compromisso.pessoa} ·{" "}
-                          {compromisso.situacao === "RESOLVIDO"
+                          {compromisso.pessoas.join(", ")} ·{" "}
+                          {compromisso.situacao === "NOTIFICADO"
+                            ? "Notificado"
+                            : compromisso.situacao === "CONCLUIDO"
+                            ? "Concluído"
+                            : compromisso.situacao === "RESOLVIDO"
                             ? "Resolvido"
                             : compromisso.situacao === "REAGENDADO"
                               ? "Reagendado"

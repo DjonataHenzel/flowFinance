@@ -1,28 +1,17 @@
 import { FormEvent, useState } from "react";
-import { entrar } from "../api";
-import type { RespostaLogin } from "../types";
+import { entrar } from "../../api";
+import type { RespostaLogin } from "../../types";
 
 interface PropriedadesLogin {
   aoAutenticar: (sessao: RespostaLogin) => void;
 }
 
-const CHAVE_CREDENCIAIS = "flowfinance.credenciais";
-function carregarCredenciais() {
-  try {
-    return JSON.parse(localStorage.getItem(CHAVE_CREDENCIAIS) ?? "null") as {
-      usuario: string;
-      senha: string;
-    } | null;
-  } catch {
-    return null;
-  }
-}
+const CHAVE_USUARIO = "flowfinance.usuario";
 
 export default function Login({ aoAutenticar }: PropriedadesLogin) {
-  const [credenciaisSalvas] = useState(carregarCredenciais);
-  const [usuario, setUsuario] = useState(credenciaisSalvas?.usuario ?? "");
-  const [senha, setSenha] = useState(credenciaisSalvas?.senha ?? "");
-  const [lembrar, setLembrar] = useState(Boolean(credenciaisSalvas));
+  const [usuario, setUsuario] = useState(() => localStorage.getItem(CHAVE_USUARIO) ?? "");
+  const [senha, setSenha] = useState("");
+  const [lembrar, setLembrar] = useState(() => Boolean(localStorage.getItem(CHAVE_USUARIO)));
   const [mensagemErro, setMensagemErro] = useState("");
   const [carregando, setCarregando] = useState(false);
 
@@ -32,12 +21,8 @@ export default function Login({ aoAutenticar }: PropriedadesLogin) {
     setCarregando(true);
     try {
       const resposta = await entrar(usuario, senha);
-      if (lembrar)
-        localStorage.setItem(
-          CHAVE_CREDENCIAIS,
-          JSON.stringify({ usuario, senha }),
-        );
-      else localStorage.removeItem(CHAVE_CREDENCIAIS);
+      if (lembrar) localStorage.setItem(CHAVE_USUARIO, usuario);
+      else localStorage.removeItem(CHAVE_USUARIO);
       aoAutenticar(resposta);
     } catch (erro) {
       setMensagemErro(
@@ -88,7 +73,7 @@ export default function Login({ aoAutenticar }: PropriedadesLogin) {
             checked={lembrar}
             onChange={(evento) => setLembrar(evento.target.checked)}
           />
-          <span>Lembrar usuário e senha</span>
+          <span>Lembrar usuário</span>
         </label>
         {mensagemErro && (
           <p className="mensagem-erro" role="alert">

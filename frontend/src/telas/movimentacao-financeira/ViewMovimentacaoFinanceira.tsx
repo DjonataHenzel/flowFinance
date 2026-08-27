@@ -7,8 +7,8 @@ import {
   estornarBaixaConta,
   excluirConta,
   listarContas,
-} from "../api";
-import type { ContaDetalhe, ContaResumo, Funcionalidade } from "../api";
+} from "../../api";
+import type { ContaDetalhe, ContaResumo, Funcionalidade } from "../../api";
 
 const rotuloSituacao = {
   ABERTA: "Aberta",
@@ -19,7 +19,7 @@ const rotuloSituacao = {
 const moeda = (valor: number) =>
   valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-export default function ViewContas({
+export default function ViewMovimentacaoFinanceira({
   aoEditar,
   aoNovo,
   aoDuplicar,
@@ -41,10 +41,15 @@ export default function ViewContas({
   const [descricaoFiltro, setDescricaoFiltro] = useState(""),
     [valorFiltro, setValorFiltro] = useState(""),
     [situacaoFiltro, setSituacaoFiltro] = useState(""),
-    [dataBaixaFiltro, setDataBaixaFiltro] = useState("");
+    [dataInicialFiltro, setDataInicialFiltro] = useState(""),
+    [dataFinalFiltro, setDataFinalFiltro] = useState("");
   async function carregar() {
+    if (dataInicialFiltro && dataFinalFiltro && dataFinalFiltro < dataInicialFiltro) {
+      setErro("A data final não pode ser anterior à data inicial.");
+      return;
+    }
     try {
-      setContas(await listarContas());
+      setContas(await listarContas(dataInicialFiltro, dataFinalFiltro));
       setErro("");
     } catch (e) {
       setErro(e instanceof Error ? e.message : "Erro ao carregar.");
@@ -52,7 +57,7 @@ export default function ViewContas({
   }
   useEffect(() => {
     carregar();
-  }, []);
+  }, [dataInicialFiltro, dataFinalFiltro]);
   async function excluir() {
     if (!menu) return;
     if (
@@ -99,6 +104,7 @@ export default function ViewContas({
     setErro("");
     setSucessoNotificacao("");
     const mensagens: string[] = [];
+    const erros: string[] = [];
     try {
       const resultado = await enviarNotificacaoNtfy();
       if (resultado.enviado) mensagens.push(resultado.mensagem);
@@ -109,7 +115,7 @@ export default function ViewContas({
           e.message.includes("Associe uma pessoa com ntfy")
         )
       )
-        setErro(e instanceof Error ? e.message : "Erro ao enviar ntfy.");
+        erros.push(e instanceof Error ? e.message : "Erro ao enviar ntfy.");
     }
     try {
       const whatsapp = await buscarNotificacaoWhatsapp();
@@ -130,11 +136,10 @@ export default function ViewContas({
           e.message.includes("Associe uma pessoa com WhatsApp")
         )
       )
-        setErro(e instanceof Error ? e.message : "Erro ao preparar WhatsApp.");
+        erros.push(e instanceof Error ? e.message : "Erro ao preparar WhatsApp.");
     }
     if (mensagens.length) setSucessoNotificacao(mensagens.join(" "));
-    if (!mensagens.length && !erro)
-      setErro("Nenhuma pessoa com canal de notificação foi encontrada.");
+    setErro(erros.length ? erros.join(" ") : !mensagens.length ? "Nenhuma pessoa com canal de notificação foi encontrada." : "");
     setPreparandoNotificacao(false);
   }
   const selecionada = menu ? contas.find((c) => c.id === menu.id) : undefined;
@@ -148,9 +153,7 @@ export default function ViewContas({
           .toLocaleLowerCase("pt-BR")
           .includes(descricaoFiltro.toLocaleLowerCase("pt-BR"))) &&
       (!valorFiltro || Math.abs(c.valorTotal - Number(valorFiltro)) < 0.005) &&
-      (!situacaoFiltro || c.situacao === situacaoFiltro) &&
-      (!dataBaixaFiltro ||
-        (c.baixadaEm && dataLocal(c.baixadaEm) === dataBaixaFiltro)),
+      (!situacaoFiltro || c.situacao === situacaoFiltro),
   );
   return (
     <>
@@ -221,12 +224,23 @@ export default function ViewContas({
             </select>
           </label>
           <label className="rotulo-campo">
-            Data da baixa
+            Vencimento inicial
             <input
               className="campo-formulario"
               type="date"
-              value={dataBaixaFiltro}
-              onChange={(e) => setDataBaixaFiltro(e.target.value)}
+              value={dataInicialFiltro}
+              max={dataFinalFiltro || undefined}
+              onChange={(e) => setDataInicialFiltro(e.target.value)}
+            />
+          </label>
+          <label className="rotulo-campo">
+            Vencimento final
+            <input
+              className="campo-formulario"
+              type="date"
+              value={dataFinalFiltro}
+              min={dataInicialFiltro || undefined}
+              onChange={(e) => setDataFinalFiltro(e.target.value)}
             />
           </label>
           <button
@@ -236,7 +250,8 @@ export default function ViewContas({
               setDescricaoFiltro("");
               setValorFiltro("");
               setSituacaoFiltro("");
-              setDataBaixaFiltro("");
+              setDataInicialFiltro("");
+              setDataFinalFiltro("");
             }}
           >
             Limpar filtros
@@ -247,10 +262,11 @@ export default function ViewContas({
             <thead>
               <tr>
                 <th>Descrição</th>
+                <th>Categoria</th>
                 <th>Tipo</th>
                 <th>Valor</th>
                 <th>Situação</th>
-                <th>Cadastro</th>
+                <th>Vencimento</th>
                 <th>Baixa</th>
               </tr>
             </thead>
@@ -267,6 +283,7 @@ export default function ViewContas({
                   }}
                 >
                   <td>{c.descricao}</td>
+                  <td>{c.categoria ?? "Sem categoria"}</td>
                   <td
                     className={
                       c.tipo === "RECEBER" ? "tipo-receber" : "tipo-pagar"
@@ -282,7 +299,7 @@ export default function ViewContas({
                       {rotuloSituacao[c.situacao]}
                     </span>
                   </td>
-                  <td>{new Date(c.criadoEm).toLocaleDateString("pt-BR")}</td>
+                  <td>{new Date(`${c.dataVencimento}T12:00:00`).toLocaleDateString("pt-BR")}</td>
                   <td>
                     {c.baixadaEm
                       ? new Date(c.baixadaEm).toLocaleString("pt-BR")
@@ -292,7 +309,7 @@ export default function ViewContas({
               ))}
               {!contasFiltradas.length && (
                 <tr>
-                  <td colSpan={6} className="lista-vazia">
+                  <td colSpan={7} className="lista-vazia">
                     Nenhuma conta encontrada.
                   </td>
                 </tr>
@@ -360,13 +377,6 @@ function IconeNotificacao() {
       <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" />
     </svg>
   );
-}
-
-function dataLocal(iso: string) {
-  const data = new Date(iso);
-  return new Date(data.getTime() - data.getTimezoneOffset() * 60000)
-    .toISOString()
-    .slice(0, 10);
 }
 
 function DialogBaixa({

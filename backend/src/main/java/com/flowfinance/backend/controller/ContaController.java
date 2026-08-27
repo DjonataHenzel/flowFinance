@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flowfinance.backend.service.ContaService;
 import com.flowfinance.backend.model.TipoContaEnum;
+import com.flowfinance.backend.model.FrequenciaRecorrenciaEnum;
 import jakarta.validation.Valid;
 import jakarta.validation.Validator;
 import jakarta.validation.constraints.*;
@@ -23,7 +24,14 @@ public class ContaController {
     private final ContaService service; private final ObjectMapper mapper; private final Validator validator;
     public ContaController(ContaService service, ObjectMapper mapper, Validator validator) { this.service = service; this.mapper = mapper; this.validator = validator; }
 
-    @GetMapping public List<ContaService.ContaResumo> listar(HttpSession sessao) { return service.listar(usuario(sessao)); }
+    @GetMapping public List<ContaService.ContaResumo> listar(
+            @RequestParam(required=false) LocalDate dataInicial,
+            @RequestParam(required=false) LocalDate dataFinal,
+            HttpSession sessao) {
+        if (dataInicial != null && dataFinal != null && dataFinal.isBefore(dataInicial))
+            throw new IllegalArgumentException("A data final não pode ser anterior à data inicial");
+        return service.listar(usuario(sessao), dataInicial, dataFinal);
+    }
     @GetMapping("/vencendo-hoje/whatsapp")
     public ContaService.NotificacaoWhatsapp notificacaoWhatsapp(HttpSession sessao) {
         return service.buscarNotificacaoWhatsapp(usuario(sessao));
@@ -36,7 +44,7 @@ public class ContaController {
     @GetMapping("/{contaId}/anexos/{anexoId}")
     public ResponseEntity<byte[]> visualizarAnexo(@PathVariable long contaId,@PathVariable long anexoId,HttpSession sessao) {
         return service.buscarAnexo(contaId,anexoId,usuario(sessao)).map(a -> ResponseEntity.ok()
-                .contentType(a.tipoArquivo()==null?MediaType.APPLICATION_OCTET_STREAM:MediaType.parseMediaType(a.tipoArquivo()))
+                .contentType(tipoArquivo(a.tipoArquivo()))
                 .header(HttpHeaders.CONTENT_DISPOSITION,"inline; filename*=UTF-8''"+java.net.URLEncoder.encode(a.nomeArquivo(),java.nio.charset.StandardCharsets.UTF_8))
                 .body(a.conteudo())).orElseGet(() -> ResponseEntity.notFound().build());
     }
@@ -78,8 +86,12 @@ public class ContaController {
         if (soma.compareTo(conta.valorTotal()) != 0) throw new IllegalArgumentException("A soma das parcelas deve ser igual ao valor total"); return conta;
     }
     private List<String> lerDescricoes(String json) throws IOException { return json == null ? List.of() : mapper.readValue(json, new TypeReference<>() {}); }
+    private MediaType tipoArquivo(String tipo) { try{return tipo==null?MediaType.APPLICATION_OCTET_STREAM:MediaType.parseMediaType(tipo);}catch(org.springframework.http.InvalidMediaTypeException e){return MediaType.APPLICATION_OCTET_STREAM;} }
     private String usuario(HttpSession sessao) { return sessao.getAttribute("usuario").toString(); }
-    public record NovaContaRequest(@NotBlank String descricao, @NotNull @DecimalMin("0.01") BigDecimal valorTotal, @NotNull TipoContaEnum tipo, Long pessoaId, List<@Valid ParcelaContaRequest> parcelas) {}
+    public record NovaContaRequest(@NotBlank String descricao, @NotNull @DecimalMin("0.01") BigDecimal valorTotal,
+            @NotNull TipoContaEnum tipo, List<Long> pessoaIds, @NotNull Long categoriaId, Long contaBancariaId, boolean debitoAutomatico,
+            boolean recorrente, FrequenciaRecorrenciaEnum frequenciaRecorrencia,
+            List<@Valid ParcelaContaRequest> parcelas) {}
     public record ParcelaContaRequest(@Min(1) int numero, @NotNull @DecimalMin("0.01") BigDecimal valor, @NotNull LocalDate dataVencimento) {}
     public record AnexoExistenteRequest(long id, @NotBlank String descricao) {}
     public enum TipoPagamento { TOTAL, PARCIAL }

@@ -11,6 +11,7 @@ import java.time.OffsetDateTime;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
+import com.flowfinance.backend.model.SituacaoCompromissoEnum;
 
 @RestController
 @RequestMapping("/api/compromissos")
@@ -22,5 +23,9 @@ public class CompromissoController {
     @PutMapping("/{id}") public ResponseEntity<Map<String,Object>> alterar(@PathVariable long id,@Valid @RequestBody CompromissoRequest r){if(!service.alterar(id,r))return ResponseEntity.notFound().build();return ResponseEntity.ok(Map.of("id",id,"message","Compromisso alterado com sucesso"));}
     @PostMapping("/{id}/duplicar") public ResponseEntity<Map<String,Object>> duplicar(@PathVariable long id){Long novo=service.duplicar(id);return novo==null?ResponseEntity.notFound().build():ResponseEntity.status(201).body(Map.of("id",novo,"message","Compromisso duplicado com sucesso"));}
     @DeleteMapping("/{id}") public ResponseEntity<Map<String,Object>> excluir(@PathVariable long id){return service.excluir(id)?ResponseEntity.ok(Map.of("id",id,"message","Compromisso excluído com sucesso")):ResponseEntity.notFound().build();}
-    public record CompromissoRequest(@NotNull OffsetDateTime dataHora,@NotBlank @Size(max=1000) String descricao,@NotNull Long pessoaId,@NotNull LocalTime horaNotificacao,@NotBlank String situacao){}
+    public record CompromissoRequest(@NotNull OffsetDateTime dataHora,@NotBlank @Size(max=1000) String descricao,
+            @NotNull @Size(min=1) List<Long> pessoaIds,@NotNull Long categoriaId,@NotNull LocalTime horaNotificacao,
+            @NotNull SituacaoCompromissoEnum situacao,@Size(max=8) String cep,@Size(max=150) String logradouro,
+            @Size(max=20) String numero,@Size(max=100) String complemento,@Size(max=100) String bairro,
+            @Size(max=100) String cidade,@Size(max=2) String uf){}
 }

@@ -3,6 +3,8 @@ package com.flowfinance.backend.controller;
 import java.math.BigDecimal;
 
 import com.flowfinance.backend.service.DashboardService;
+import com.flowfinance.backend.service.AutenticacaoService;
+import com.flowfinance.backend.model.FuncionalidadeEnum;
 import com.flowfinance.backend.service.DashboardService.ResumoFinanceiro;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,8 +26,12 @@ class DashboardControllerTest {
     @MockitoBean
     private DashboardService dashboardService;
 
+    @MockitoBean
+    private AutenticacaoService autenticacaoService;
+
     @Test
     void shouldReturnDashboardSummary() throws Exception {
+        when(autenticacaoService.temPermissao("admin", FuncionalidadeEnum.VISUALIZAR_DASHBOARD)).thenReturn(true);
         when(dashboardService.buscarResumoMesAtual("admin")).thenReturn(new ResumoFinanceiro(
                 "Agosto", new BigDecimal("18500.00"), new BigDecimal("9200.00"), new BigDecimal("9300.00")));
         mockMvc.perform(get("/api/dashboard").sessionAttr("usuario","admin"))

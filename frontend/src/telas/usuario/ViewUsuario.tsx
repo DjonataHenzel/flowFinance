@@ -1,6 +1,6 @@
 import{useEffect,useState}from'react';
-import{excluirUsuario,listarUsuarios}from'../api';
-import type{Funcionalidade,UsuarioResumo}from'../api';
+import{excluirUsuario,listarUsuarios}from'../../api';
+import type{Funcionalidade,UsuarioResumo}from'../../api';
 import Usuario from'./Usuario';
 
 export default function ViewUsuario({funcionalidades}:{funcionalidades:Funcionalidade[]}){

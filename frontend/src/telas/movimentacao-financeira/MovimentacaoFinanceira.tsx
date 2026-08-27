@@ -5,16 +5,21 @@ import {
   cadastrarConta,
   visualizarAnexo,
   listarPessoas,
-} from "../api";
+  listarContasBancarias,
+  listarCategorias,
+} from "../../api";
 import type {
   AnexoConta,
   AnexoNovo,
   ParcelaConta,
   TipoContaEnum,
   PessoaResumo,
-} from "../api";
+  ContaBancaria,
+  FrequenciaRecorrencia,
+  Categoria,
+} from "../../api";
 
-export default function Movimentacao({
+export default function MovimentacaoFinanceira({
   tipo,
   contaId,
   origemId,
@@ -33,7 +38,14 @@ export default function Movimentacao({
     [anexos, setAnexos] = useState<AnexoNovo[]>([]),
     [existentes, setExistentes] = useState<AnexoConta[]>([]);
   const [pessoas, setPessoas] = useState<PessoaResumo[]>([]),
-    [pessoaId, setPessoaId] = useState<number | null>(null);
+    [pessoaIds, setPessoaIds] = useState<number[]>([]),
+    [categorias, setCategorias] = useState<Categoria[]>([]),
+    [categoriaId, setCategoriaId] = useState<number | null>(null),
+    [contasBancarias,setContasBancarias]=useState<ContaBancaria[]>([]),
+    [contaBancariaId,setContaBancariaId]=useState<number|null>(null),
+    [debitoAutomatico,setDebitoAutomatico]=useState(false),
+    [recorrente,setRecorrente]=useState(false),
+    [frequenciaRecorrencia,setFrequenciaRecorrencia]=useState<FrequenciaRecorrencia>("MENSAL");
   const [erro, setErro] = useState(""),
     [salvando, setSalvando] = useState(false),
     [modal, setModal] = useState(false),
@@ -48,6 +60,8 @@ export default function Movimentacao({
     listarPessoas()
       .then(setPessoas)
       .catch(() => undefined);
+    listarContasBancarias().then(setContasBancarias).catch(()=>undefined);
+    listarCategorias().then(setCategorias).catch(()=>undefined);
     const fonte = contaId ?? origemId;
     setTipoAtual(tipo);
     setDescricao("");
@@ -57,14 +71,21 @@ export default function Movimentacao({
     setParcelas([]);
     setAnexos([]);
     setExistentes([]);
-    setPessoaId(null);
+    setPessoaIds([]);
+    setCategoriaId(null);
+    setContaBancariaId(null);setDebitoAutomatico(false);setRecorrente(false);setFrequenciaRecorrencia("MENSAL");
     if (fonte)
       buscarConta(fonte)
         .then((c) => {
           setDescricao(c.descricao);
           setValor(formatarMoeda(c.valorTotal));
           setTipoAtual(c.tipo);
-          setPessoaId(c.pessoaId ?? null);
+          setPessoaIds(c.pessoaIds ?? []);
+          setCategoriaId(c.categoriaId ?? null);
+          setContaBancariaId(c.contaBancariaId??null);
+          setDebitoAutomatico(c.debitoAutomatico);
+          setRecorrente(c.recorrente);
+          setFrequenciaRecorrencia(c.frequenciaRecorrencia??"MENSAL");
           setParcelas(
             origemId
               ? c.parcelas.map((p) => ({
@@ -90,6 +111,8 @@ export default function Movimentacao({
       setErro("Informe um valor maior que zero.");
       return;
     }
+    if (!categoriaId) { setErro("Selecione uma categoria."); return; }
+    if(debitoAutomatico&&!contaBancariaId){setErro("Selecione uma conta bancária para o débito automático.");return;}
     if (
       [
         ...anexos.map((a) => a.descricao),
@@ -123,7 +146,12 @@ export default function Movimentacao({
         descricao,
         valorTotal: moedaParaNumero(valor),
         tipo: tipoAtual,
-        pessoaId,
+        pessoaIds,
+        categoriaId: categoriaId!,
+        contaBancariaId,
+        debitoAutomatico,
+        recorrente,
+        frequenciaRecorrencia:recorrente?frequenciaRecorrencia:null,
         parcelas: p,
       };
       await (contaId
@@ -170,6 +198,23 @@ export default function Movimentacao({
           onChange={(e) => setDescricao(e.target.value)}
           required
         />
+        <label className="rotulo-campo">Categoria *</label>
+        <select className="campo-formulario" value={categoriaId ?? ""} onChange={e => setCategoriaId(e.target.value ? Number(e.target.value) : null)} required>
+          <option value="">Selecione uma categoria</option>
+          {categorias.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+        </select>
+        {!categorias.length && <small className="ajuda-campo">Cadastre uma categoria em Ferramentas → Categorias antes de lançar a movimentação.</small>}
+        <label className="rotulo-campo">Conta bancária</label>
+        <select className="campo-formulario" value={contaBancariaId??""} onChange={e=>setContaBancariaId(e.target.value?Number(e.target.value):null)} required={debitoAutomatico}>
+          <option value="">Sem conta bancária vinculada</option>
+          {contasBancarias.map(c=><option key={c.id} value={c.id}>{rotuloBanco(c.banco)} · Ag. {c.agencia} · Conta {c.numeroConta}</option>)}
+        </select>
+        <div className="opcoes-lancamento">
+          <label className="opcao-checkbox"><input type="checkbox" checked={debitoAutomatico} onChange={e=>setDebitoAutomatico(e.target.checked)}/> Débito automático</label>
+          <label className="opcao-checkbox"><input type="checkbox" checked={recorrente} disabled={Boolean(contaId)} onChange={e=>setRecorrente(e.target.checked)}/> Recorrente</label>
+        </div>
+        {debitoAutomatico&&!contasBancarias.length&&<p className="aviso-informativo">Cadastre uma conta bancária em Ferramentas → Contas bancárias para utilizar débito automático.</p>}
+        {recorrente&&<section className="secao-recorrencia"><h2>Recorrência</h2><p className="subtitulo">Serão criadas novas contas até o final do ano do primeiro vencimento.</p><label className="rotulo-campo">Frequência *</label><select className="campo-formulario" value={frequenciaRecorrencia} onChange={e=>setFrequenciaRecorrencia(e.target.value as FrequenciaRecorrencia)}><option value="DIARIA">Diariamente</option><option value="SEMANAL">Semanalmente</option><option value="MENSAL">Mensalmente</option><option value="ANUAL">Anualmente</option></select></section>}
         <label className="rotulo-campo">Tipo *</label>
         <select
           className="campo-formulario"
@@ -179,23 +224,18 @@ export default function Movimentacao({
           <option value="RECEBER">Receber</option>
           <option value="PAGAR">Pagar</option>
         </select>
-        <label className="rotulo-campo">
-          Pessoa para notificações
-          <select
-            className="campo-formulario"
-            value={pessoaId ?? ""}
-            onChange={(e) =>
-              setPessoaId(e.target.value ? Number(e.target.value) : null)
-            }
-          >
-            <option value="">Sem pessoa vinculada</option>
+        <div className="rotulo-campo">
+          Pessoas para notificações
+          <span className="lista-selecao-pessoas">
             {pessoas.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.nome}
-              </option>
+              <span className="item-selecao-pessoa" key={p.id}>
+                <input type="checkbox" checked={pessoaIds.includes(p.id)} onChange={(e) => setPessoaIds((atuais) => e.target.checked ? [...atuais, p.id] : atuais.filter((id) => id !== p.id))}/>
+                <span>{p.nome}</span>
+              </span>
             ))}
-          </select>
-        </label>
+            {!pessoas.length && <span className="lista-pessoas-vazia">Nenhuma pessoa cadastrada.</span>}
+          </span>
+        </div>
         <label className="rotulo-campo">Valor total *</label>
         <input
           className="campo-formulario"
@@ -407,15 +447,13 @@ export default function Movimentacao({
           >
             Salvar
           </button>
-          {(contaId || origemId) && (
-            <button
-              type="button"
-              className="botao-secundario"
-              onClick={aoConcluir}
-            >
-              Voltar
-            </button>
-          )}
+          <button
+            type="button"
+            className="botao-secundario"
+            onClick={aoConcluir}
+          >
+            Voltar
+          </button>
         </div>
       </form>
       {modal && (
@@ -432,6 +470,8 @@ export default function Movimentacao({
     </>
   );
 }
+
+function rotuloBanco(banco:ContaBancaria["banco"]){return {NUBANK:"Nubank",SICREDI:"Sicredi",SICOOB:"Sicoob",BANCO_DO_BRASIL:"Banco do Brasil",CAIXA:"Caixa",PLUXE:"Pluxe"}[banco]}
 
 function TabelaParcelas({
   parcelas,

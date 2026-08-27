@@ -1,6 +1,6 @@
 import{useEffect,useState}from'react';
-import{buscarPapel,excluirPapel,listarPapeis}from'../api';
-import type{PapelDetalhe,PapelResumo}from'../api';
+import{buscarPapel,excluirPapel,listarPapeis}from'../../api';
+import type{PapelDetalhe,PapelResumo}from'../../api';
 import Permissao from'./Permissao';
 
 export default function ViewPermissoes(){

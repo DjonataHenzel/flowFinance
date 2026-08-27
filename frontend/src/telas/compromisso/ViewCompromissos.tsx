@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
-import { excluirCompromisso, listarCompromissos } from "../api";
-import type { CompromissoResumo, PessoaResumo } from "../api";
-import { listarPessoas } from "../api";
+import { excluirCompromisso, listarCompromissos } from "../../api";
+import type { CompromissoResumo, PessoaResumo } from "../../api";
+import { listarPessoas } from "../../api";
 import Compromisso from "./Compromisso";
 const situacao = {
   PENDENTE: "Pendente",
   RESOLVIDO: "Resolvido",
   REAGENDADO: "Reagendado",
+  CONCLUIDO: "Concluído",
+  NOTIFICADO: "Notificado",
 };
 export default function ViewCompromissos() {
   const [lista, setLista] = useState<CompromissoResumo[]>([]),
@@ -73,7 +75,7 @@ export default function ViewCompromissos() {
         c.descricao
           .toLocaleLowerCase("pt-BR")
           .includes(descricaoFiltro.toLocaleLowerCase("pt-BR"))) &&
-      (!pessoaFiltro || String(c.pessoaId) === pessoaFiltro),
+      (!pessoaFiltro || c.pessoaIds.includes(Number(pessoaFiltro))),
   );
   return (
     <section className="painel">
@@ -136,6 +138,7 @@ export default function ViewCompromissos() {
               <th>Data</th>
               <th>Descrição</th>
               <th>Pessoa</th>
+              <th>Categoria</th>
               <th>Notificar</th>
               <th>Situação</th>
             </tr>
@@ -152,7 +155,8 @@ export default function ViewCompromissos() {
               >
                 <td>{new Date(c.dataHora).toLocaleString("pt-BR")}</td>
                 <td>{c.descricao}</td>
-                <td>{c.pessoa}</td>
+                <td>{c.pessoas.join(", ")}</td>
+                <td>{c.categoria ?? "Sem categoria"}</td>
                 <td>{c.horaNotificacao.slice(0, 5)}</td>
                 <td>
                   <span
@@ -165,7 +169,7 @@ export default function ViewCompromissos() {
             ))}
             {!filtradas.length && (
               <tr>
-                <td colSpan={5} className="lista-vazia">
+                <td colSpan={6} className="lista-vazia">
                   Nenhum compromisso cadastrado.
                 </td>
               </tr>

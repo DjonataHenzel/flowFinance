@@ -5,6 +5,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Arrays;
+import java.util.Collections;
 import com.flowfinance.backend.model.FuncionalidadeEnum;
 
 @Service
@@ -25,11 +26,11 @@ public class AutenticacaoService {
     }
 
     public UsuarioAutenticado dadosUsuario(String usuario) {
-        return jdbc.query("SELECT u.papel_id,p.nome FROM usuario u LEFT JOIN papeis p ON p.id=u.papel_id AND p.ativo=TRUE WHERE u.usuario=?",(r,n)->{
+        return jdbc.query("SELECT u.papel_id,p.nome,COALESCE(p.ativo,FALSE) FROM usuario u LEFT JOIN papeis p ON p.id=u.papel_id WHERE u.usuario=? AND u.ativo=TRUE",(r,n)->{
             Long papelId=r.getObject(1,Long.class);
-            List<FuncionalidadeEnum> funcoes=papelId==null?Arrays.asList(FuncionalidadeEnum.values()):jdbc.query("SELECT funcionalidade FROM papel_funcionalidades WHERE papel_id=?",(f,x)->FuncionalidadeEnum.valueOf(f.getString(1)),papelId);
+            List<FuncionalidadeEnum> funcoes=papelId==null?Arrays.asList(FuncionalidadeEnum.values()):r.getBoolean(3)?jdbc.query("SELECT funcionalidade FROM papel_funcionalidades WHERE papel_id=?",(f,x)->FuncionalidadeEnum.valueOf(f.getString(1)),papelId):Collections.emptyList();
             return new UsuarioAutenticado(usuario,papelId,r.getString(2),funcoes);
-        },usuario).getFirst();
+        },usuario).stream().findFirst().orElse(null);
     }
     public boolean temPermissao(String usuario, FuncionalidadeEnum funcionalidade) {
         Integer quantidade = jdbc.queryForObject("""

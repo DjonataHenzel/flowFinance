@@ -55,6 +55,66 @@ button, input, select, textarea { font: inherit; }
 .filtros-resumo .rotulo-campo { margin:0; color:#7dd3fc; }
 .filtros-resumo .campo-formulario { margin-top:.4rem; }
 .filtros-resumo .botao-adicionar { min-height:44px; }
+.filtros-periodo { grid-template-columns:minmax(180px,1fr) minmax(180px,1fr) auto; }
+.grupo-relatorio { margin-top:1.5rem; overflow:hidden; border:1px solid rgba(56,189,248,.18); border-radius:12px; background:rgba(2,12,29,.3); }
+.grade-grupos-relatorio { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,620px),1fr)); gap:1rem; }
+.grade-grupos-relatorio .grupo-relatorio { margin-top:0; }
+.grupo-relatorio h2 { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin:0; padding:1rem; border-bottom:1px solid rgba(56,189,248,.18); font-size:1.05rem; }
+.grupo-relatorio h2 small { color:#91a6c2; font-size:.85rem; }
+.grupo-pago,.grupo-recebido { border-color:rgba(74,222,128,.28); }
+.grupo-pago h2,.grupo-recebido h2 { color:#86efac; background:rgba(20,83,45,.2); }
+.grupo-pagar { border-color:rgba(251,113,133,.3); }
+.grupo-pagar h2 { color:#fda4af; background:rgba(136,19,55,.18); }
+.grupo-receber { border-color:rgba(56,189,248,.3); }
+.grupo-receber h2 { color:#7dd3fc; background:rgba(14,116,144,.18); }
+.tabela-relatorio td:last-child,.tabela-relatorio th:last-child { text-align:right; }
+.grade-grupos-relatorio .tabela-responsiva { overflow-x:hidden; }
+.grade-grupos-relatorio .tabela-relatorio { width:100%; table-layout:fixed; }
+.grade-grupos-relatorio .tabela-relatorio th,.grade-grupos-relatorio .tabela-relatorio td { padding:.75rem .7rem; }
+.grade-grupos-relatorio .tabela-relatorio td:nth-child(1),.grade-grupos-relatorio .tabela-relatorio td:nth-child(3),.grade-grupos-relatorio .tabela-relatorio td:nth-child(4),.grade-grupos-relatorio .tabela-relatorio td:nth-child(5),.grade-grupos-relatorio .tabela-relatorio th { white-space:nowrap; }
+.grade-grupos-relatorio .tabela-relatorio td:nth-child(2) { overflow-wrap:break-word; }
+.grade-grupos-relatorio .tabela-relatorio th { font-size:.72rem; }
+.grade-grupos-relatorio .tabela-relatorio th:nth-child(1) { width:19%; }
+.grade-grupos-relatorio .tabela-relatorio th:nth-child(2) { width:31%; }
+.grade-grupos-relatorio .tabela-relatorio th:nth-child(3) { width:13%; }
+.grade-grupos-relatorio .tabela-relatorio th:nth-child(4) { width:19%; }
+.grade-grupos-relatorio .tabela-relatorio th:nth-child(5) { width:18%; }
+.tabela-relatorio tfoot th { color:#dff5ff; border-top:1px solid rgba(56,189,248,.25); }
+.totalizador-relatorio { display:flex; justify-content:flex-end; flex-wrap:wrap; gap:1rem 2rem; margin-top:1.5rem; padding:1.1rem; border:1px solid rgba(56,189,248,.25); border-radius:12px; background:rgba(14,116,144,.12); }
+.totalizador-relatorio span { color:#a9bdd5; }
+.totalizador-relatorio strong { display:block; margin-top:.25rem; color:#dff5ff; font-size:1.15rem; }
+.totalizador-contas { display:grid; grid-template-columns:repeat(5,minmax(120px,1fr)); justify-content:stretch; gap:0; padding:0; overflow:hidden; }
+.totalizador-contas span { padding:1rem; border-right:1px solid rgba(56,189,248,.18); }
+.totalizador-contas span:last-child { border-right:0; }
+.totalizador-contas .total-pago strong,.totalizador-contas .total-recebido strong { color:#4ade80; }
+.totalizador-contas .total-pagar strong { color:#fb7185; }
+.totalizador-contas .total-receber strong { color:#38bdf8; }
+.totalizador-contas .total-geral { background:rgba(56,189,248,.08); }
+.resumo-debitos-automaticos { margin-top:1.5rem; border:1px solid rgba(56,189,248,.25); border-radius:14px; background:rgba(2,12,29,.3); }
+.cabecalho-resumo-debitos { display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:1rem 1.15rem; border-bottom:1px solid rgba(56,189,248,.2); background:rgba(14,116,144,.1); }
+.cabecalho-resumo-debitos h2 { margin:0; font-size:1.08rem; }
+.cabecalho-resumo-debitos p { margin:.3rem 0 0; color:#91a6c2; font-size:.85rem; }
+.cabecalho-resumo-debitos>strong { color:#7dd3fc; font-size:1.2rem; white-space:nowrap; }
+.grade-debitos-banco { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:1rem; padding:1rem; }
+.grade-debitos-banco article { border:1px solid rgba(56,189,248,.18); border-radius:10px; background:#0b203b; }
+.grade-debitos-banco h3 { margin:0; padding:.8rem; border-bottom:1px solid rgba(56,189,248,.16); color:#dff5ff; font-size:1rem; }
+.grade-debitos-banco article>div { display:grid; grid-template-columns:1fr 1fr; gap:.75rem; padding:.8rem; }
+.grade-debitos-banco article span { color:#91a6c2; font-size:.78rem; }
+.grade-debitos-banco article span strong { display:block; margin-top:.25rem; font-size:.95rem; }
+.grade-debitos-banco footer { display:flex; align-items:center; justify-content:space-between; padding:.7rem .8rem; border-top:1px solid rgba(56,189,248,.16); }
+.grade-debitos-banco footer strong { color:#dff5ff; }
+.total-debito-com-detalhes { position:relative; min-width:0; padding:.25rem; border-radius:6px; color:#91a6c2; font-size:.78rem; cursor:help; outline:none; }
+.total-debito-com-detalhes>strong { display:block; margin-top:.25rem; font-size:.95rem; }
+.total-debito-com-detalhes:hover,.total-debito-com-detalhes:focus-visible { background:rgba(56,189,248,.08); box-shadow:0 0 0 1px rgba(56,189,248,.22); }
+.popup-detalhes-debitos { position:absolute; z-index:20; top:calc(100% + .5rem); left:0; display:none; width:max-content; min-width:260px; max-width:min(360px,calc(100vw - 3rem)); padding:.8rem; border:1px solid rgba(125,211,252,.35); border-radius:10px; background:#071a32; box-shadow:0 14px 35px rgba(0,0,0,.5); }
+.total-debito-com-detalhes:last-child .popup-detalhes-debitos { right:0; left:auto; }
+.total-debito-com-detalhes:hover .popup-detalhes-debitos,.total-debito-com-detalhes:focus .popup-detalhes-debitos { display:block; }
+.grade-debitos-banco article .popup-detalhes-debitos>b { display:block; margin-bottom:.55rem; color:#dff5ff; font-size:.85rem; }
+.grade-debitos-banco article .popup-detalhes-debitos>span { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:1rem; padding:.4rem 0; border-bottom:1px solid rgba(56,189,248,.12); color:#c6d7eb; font-size:.82rem; }
+.grade-debitos-banco article .popup-detalhes-debitos>span>span { overflow-wrap:anywhere; color:#c6d7eb; font-size:.82rem; }
+.grade-debitos-banco article .popup-detalhes-debitos>span>strong { margin:0; color:#f5f9ff; white-space:nowrap; }
+.popup-detalhes-debitos em { display:block; padding:.4rem 0; color:#91a6c2; font-style:normal; }
+.grade-debitos-banco article .popup-detalhes-debitos footer { margin:.45rem -.8rem -.8rem; border-radius:0 0 10px 10px; }
 .periodo-resumo { margin:1.3rem 0 .9rem; color:#9fb5cf; }
 .periodo-resumo strong { color:#bae6fd; }
 .grade-graficos { display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-top:1.25rem; }
@@ -101,13 +161,18 @@ button, input, select, textarea { font: inherit; }
 .orbita-externa { width:47rem; height:47rem; }
 .orbita-interna { width:22rem; height:22rem; border-style:dashed; transform:rotate(-18deg); }
 @media(max-width:850px){.grade-graficos{grid-template-columns:1fr}}
-@media(max-width:650px){.filtros-resumo{grid-template-columns:1fr}.cabecalho-grafico{flex-direction:column}.area-grafico{gap:2rem;padding-inline:.5rem}.coluna-grafico{width:42%}.conteudo-rosca{flex-direction:column}.marca-dagua-home::before{width:28rem;height:28rem}.orbita-externa{width:32rem;height:32rem}}
+@media(max-width:850px){.grade-grupos-relatorio{grid-template-columns:1fr}.totalizador-contas{grid-template-columns:repeat(2,1fr)}.totalizador-contas .total-geral{grid-column:1/-1}.totalizador-contas span:nth-child(even){border-right:0}}
+@media(max-width:650px){.filtros-resumo,.filtros-periodo{grid-template-columns:1fr}.cabecalho-grafico{flex-direction:column}.area-grafico{gap:2rem;padding-inline:.5rem}.coluna-grafico{width:42%}.conteudo-rosca{flex-direction:column}.marca-dagua-home::before{width:28rem;height:28rem}.orbita-externa{width:32rem;height:32rem}.totalizador-relatorio{justify-content:flex-start}.cabecalho-resumo-debitos{align-items:flex-start;flex-direction:column}.grade-grupos-relatorio .tabela-relatorio th,.grade-grupos-relatorio .tabela-relatorio td{padding:.6rem .35rem;font-size:.75rem}}
 .painel { margin-top: 2rem; }
 .painel h2 { margin-top: 0; }
 .lista-movimentacoes { margin: 0; padding: 0; list-style: none; }
 .lista-movimentacoes li { display: flex; justify-content: space-between; padding: .9rem 0; border-bottom: 1px solid #edf1f5; }
 .texto-verde { color: #1dbf73; } .texto-vermelho { color: #ef5a5a; } .texto-azul { color: #2c7be5; }
 .formulario-movimentacao { max-width: 600px; margin: 0 auto; }
+.secao-endereco-compromisso { margin-top:1rem; border:1px solid rgba(56,189,248,.2); border-radius:12px; background:rgba(2,12,29,.28); }
+.secao-endereco-compromisso summary { padding:1rem; color:#dff5ff; font-weight:700; cursor:pointer; }
+.secao-endereco-compromisso summary small { color:#91a6c2; font-weight:400; }
+.conteudo-endereco-compromisso { padding:0 1rem 1rem; }
 .cabecalho-listagem { display: flex; align-items: start; justify-content: space-between; gap: 1rem; }
 .acoes-cabecalho { display:flex; align-items:center; gap:.75rem; }
 .botao-whatsapp { display:flex; align-items:center; gap:.5rem; padding:.75rem 1rem; border:0; border-radius:9px; color:#fff; background:#16a34a; font-weight:700; cursor:pointer; white-space:nowrap; }
@@ -122,10 +187,12 @@ button, input, select, textarea { font: inherit; }
 .situacao-ativa,.situacao-inativa { display: inline-block; padding: .3rem .6rem; border-radius: 999px; font-size: .8rem; font-weight: 700; }
 .situacao-ativa { color: #166534; background: #dcfce7; } .situacao-inativa { color: #991b1b; background: #fee2e2; }
 .lista-vazia { color: #64748b; text-align: center !important; }
-.acoes-formulario { display: flex; justify-content: flex-end; align-items: stretch; gap: .75rem; margin-top: 1.4rem; }
+.acoes-formulario { display: flex; justify-content: center; align-items: stretch; gap: .75rem; margin-top: 1.4rem; }
 .botao-secundario { padding: .85rem 1rem; border: 1px solid #cbd5e1; border-radius: 9px; color: #334155; background: #fff; cursor: pointer; }
-.acoes-formulario .botao-primario { width: min(220px, 100%); margin-top: 0; }
-.acoes-formulario .botao-secundario { min-width: 5.5rem; }
+.acoes-formulario .botao-primario,.acoes-formulario .botao-secundario { width: 7.5rem; margin-top: 0; }
+.acoes-linha { display:flex; gap:.5rem; }
+.acoes-linha button { padding:.4rem .65rem; border:1px solid #3b5577; border-radius:7px; color:#dce8f8; background:#10233e; cursor:pointer; }
+.acoes-linha .acao-perigosa { color:#fda4af; border-color:rgba(248,113,113,.35); }
 .ajuda-campo { display: block; margin-top: .4rem; color: #64748b; }
 .secao-notificacao { margin-top:1.5rem; padding:1.25rem; border:1px solid #dbe4f0; border-radius:12px; background:#f8fafc; }
 .secao-notificacao h2 { margin:0 0 .85rem; font-size:1.1rem; }
@@ -135,6 +202,10 @@ button, input, select, textarea { font: inherit; }
 .secao-notificacao > .botao-secundario { margin-top:.65rem; }
 .opcao-checkbox { display:flex; align-items:center; gap:.55rem; cursor:pointer; }
 .opcao-checkbox input { width:1rem; height:1rem; margin:0; accent-color:#2c7be5; }
+.opcoes-lancamento { display:flex; flex-wrap:wrap; gap:1.5rem; margin-top:1rem; }
+.secao-recorrencia { margin-top:1rem; padding:1rem; border:1px solid rgba(56,189,248,.22); border-radius:12px; background:rgba(2,12,29,.35); }
+.secao-recorrencia h2 { margin:0; font-size:1.05rem; }
+.secao-recorrencia .subtitulo { margin:.35rem 0 .8rem; }
 .cadastro-whatsapp { margin-top:1rem; }
 .linha-contato { display:grid; grid-template-columns:1fr auto; gap:.75rem; }
 .lista-contatos-whatsapp { margin:.8rem 0 0; padding:0; list-style:none; }
@@ -188,6 +259,7 @@ button, input, select, textarea { font: inherit; }
 .item-compromisso span,.item-compromisso small { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .item-compromisso small { color:#a9c8e8; font-size:.7rem; }
 .item-compromisso-resolvido { border-color:rgba(74,222,128,.3); background:rgba(20,83,45,.28); }
+.item-compromisso-concluido { border-color:rgba(74,222,128,.3); background:rgba(20,83,45,.28); }
 .item-compromisso-reagendado { border-color:rgba(251,191,36,.35); background:rgba(120,53,15,.25); }
 .botao-limpar-filtros { align-self:end; padding:.7rem .85rem; border:1px solid #cbd5e1; border-radius:8px; color:#334155; background:transparent; cursor:pointer; white-space:nowrap; }
 .campo-formulario:disabled { color:#475569; background:#f1f5f9; cursor:not-allowed; }
@@ -225,7 +297,7 @@ button, input, select, textarea { font: inherit; }
 .acoes-anexo svg { width:1.2rem; height:1.2rem; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
 .acoes-anexo .remover-anexo { color:#b91c1c; }
 .acoes-anexo .remover-anexo:hover { background:#fef2f2; }
-@media (max-width:650px) { .cabecalho-principal { padding: 0 1rem; } .marca { margin-right: .5rem; } .area-usuario span { display: none; } .grade-baixa,.linha-contato,.filtros-pessoas { grid-template-columns:1fr; } .cabecalho-listagem,.acoes-cabecalho { flex-direction:column; } .acoes-formulario { display:grid; grid-template-columns:1fr auto; } .acoes-formulario .botao-primario { width:100%; } .calendario-cabecalho { align-items:stretch; } .calendario-controles h2 { min-width:0; font-size:1.05rem; } .calendario-dia { min-height:72px; padding:.3rem; } .calendario-dia-semana { padding:.45rem .1rem; font-size:.65rem; } .indicador-compromissos { padding:.22rem; font-size:.62rem; } .popup-compromissos-dia { left:50%; transform:translateX(-50%); } }
+@media (max-width:650px) { .cabecalho-principal { padding: 0 1rem; } .marca { margin-right: .5rem; } .area-usuario span { display: none; } .grade-baixa,.linha-contato,.filtros-pessoas { grid-template-columns:1fr; } .cabecalho-listagem,.acoes-cabecalho { flex-direction:column; } .acoes-formulario { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); } .acoes-formulario .botao-primario,.acoes-formulario .botao-secundario { width:100%; } .calendario-cabecalho { align-items:stretch; } .calendario-controles h2 { min-width:0; font-size:1.05rem; } .calendario-dia { min-height:72px; padding:.3rem; } .calendario-dia-semana { padding:.45rem .1rem; font-size:.65rem; } .indicador-compromissos { padding:.22rem; font-size:.62rem; } .popup-compromissos-dia { left:50%; transform:translateX(-50%); } }
 
 /* Tema tecnológico escuro */
 .pagina-home { color:#dce8f8; }
@@ -262,11 +334,19 @@ button, input, select, textarea { font: inherit; }
 .pagina-home .mensagem-sucesso { color:#bbf7d0; background:rgba(20,83,45,.38); }
 .pagina-home .aviso-informativo { color:#bae6fd; background:rgba(3,105,161,.24); }
 .pagina-home .fechar-menu-contexto { background:rgba(0,0,0,.08); }
-.filtros-contas { display:grid; grid-template-columns:minmax(180px,1.6fr) minmax(120px,.8fr) minmax(145px,1fr) minmax(155px,1fr) auto; align-items:end; gap:.75rem; margin:1.25rem 0 .75rem; padding:1rem; border:1px solid rgba(56,189,248,.14); border-radius:12px; background:rgba(2,12,29,.35); }
+.filtros-contas { display:grid; grid-template-columns:minmax(180px,1.6fr) minmax(120px,.8fr) minmax(145px,1fr) minmax(155px,1fr) minmax(155px,1fr) auto; align-items:end; gap:.75rem; margin:1.25rem 0 .75rem; padding:1rem; border:1px solid rgba(56,189,248,.14); border-radius:12px; background:rgba(2,12,29,.35); }
 .filtros-usuarios { grid-template-columns:minmax(240px,1.5fr) minmax(180px,1fr) auto; }
 .filtros-contas.filtros-pessoas { grid-template-columns:minmax(180px,1fr) minmax(180px,1fr) auto; }
 .filtros-contas .rotulo-campo { margin:0; color:#7dd3fc; }
 .filtros-contas .campo-formulario { margin-top:.4rem; }
+.lista-selecao-pessoas { display:grid; max-height:190px; margin-top:.4rem; overflow-y:auto; border:1px solid #315071; border-radius:10px; background:#081a31; }
+.item-selecao-pessoa { display:flex; align-items:center; gap:.7rem; padding:.7rem .85rem; border-bottom:1px solid rgba(125,211,252,.12); color:#dce8f8; cursor:pointer; }
+.item-selecao-pessoa:last-child { border-bottom:0; }
+.item-selecao-pessoa:hover { background:rgba(56,189,248,.08); }
+.item-selecao-pessoa:has(input:checked) { background:rgba(14,165,233,.16); color:#e0f2fe; }
+.item-selecao-pessoa input { width:18px; height:18px; margin:0; accent-color:#2f80ed; cursor:pointer; }
+.item-selecao-pessoa small { color:#91a6c2; }
+.lista-pessoas-vazia { padding:.8rem; color:#91a6c2; font-weight:400; }
 .botao-limpar-filtros { padding:.8rem .9rem; border:1px solid #3b5577; border-radius:9px; color:#a9c8e8; background:#10233e; cursor:pointer; white-space:nowrap; }
 .botao-limpar-filtros:hover { color:#fff; border-color:#38bdf8; background:#153052; }
 .pagina-home .painel h1 { color:#dff5ff; text-shadow:0 0 22px rgba(56,189,248,.13); }

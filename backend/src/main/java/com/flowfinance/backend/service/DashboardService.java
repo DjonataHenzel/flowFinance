@@ -33,9 +33,9 @@ public class DashboardService {
                   JOIN usuario u ON u.id = c.usuario_cadastro
                  WHERE COALESCE(CAST(p.baixada_em AS DATE), p.data_vencimento) BETWEEN ? AND ?
                    AND (CAST(? AS VARCHAR) IS NULL OR c.situacao = ?)
-                   AND u.usuario = ?
+                   AND (u.usuario = ? OR (SELECT visualizar_cadastros_todos_usuarios FROM usuario WHERE usuario=?))
                 """, (resultado, linha) -> new Totais(resultado.getBigDecimal(1), resultado.getBigDecimal(2)),
-                dataInicio, dataFim, situacao == null ? null : situacao.name(), situacao == null ? null : situacao.name(),usuario);
+                dataInicio, dataFim, situacao == null ? null : situacao.name(), situacao == null ? null : situacao.name(),usuario,usuario);
         BigDecimal receitas = totais == null ? BigDecimal.ZERO : totais.receitas();
         BigDecimal despesas = totais == null ? BigDecimal.ZERO : totais.despesas();
         String periodo = dataInicio.format(DATA_BRASILEIRA) + " a " + dataFim.format(DATA_BRASILEIRA);

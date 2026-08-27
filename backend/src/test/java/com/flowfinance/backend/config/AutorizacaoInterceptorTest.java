@@ -2,6 +2,7 @@ package com.flowfinance.backend.config;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -32,7 +33,7 @@ class AutorizacaoInterceptorTest {
         MockHttpServletRequest request=new MockHttpServletRequest("GET","/api/contas");
         MockHttpServletResponse response=new MockHttpServletResponse();
         assertFalse(interceptor.preHandle(request,response,new Object()));
-        assertTrue(response.getStatus()==401);
+        assertEquals(401,response.getStatus());
     }
 
     @Test
@@ -42,7 +43,7 @@ class AutorizacaoInterceptorTest {
         MockHttpServletResponse response=new MockHttpServletResponse();
         when(autenticacao.temPermissao("teste",FuncionalidadeEnum.EXCLUIR_CONTAS)).thenReturn(false);
         assertFalse(interceptor.preHandle(request,response,new Object()));
-        assertTrue(response.getStatus()==403);
+        assertEquals(403,response.getStatus());
     }
 
     @Test
@@ -51,5 +52,38 @@ class AutorizacaoInterceptorTest {
         request.getSession().setAttribute("usuario","teste");
         when(autenticacao.temPermissao("teste",FuncionalidadeEnum.VISUALIZAR_DASHBOARD)).thenReturn(true);
         assertTrue(interceptor.preHandle(request,new MockHttpServletResponse(),new Object()));
+    }
+
+    @Test
+    void deveExigirPermissaoParaContasBancarias() throws Exception {
+        MockHttpServletRequest request=new MockHttpServletRequest("POST","/api/contas-bancarias");
+        request.getSession().setAttribute("usuario","teste");
+        when(autenticacao.temPermissao("teste",FuncionalidadeEnum.CADASTRAR_CONTAS_BANCARIAS)).thenReturn(false);
+
+        MockHttpServletResponse response=new MockHttpServletResponse();
+        assertFalse(interceptor.preHandle(request,response,new Object()));
+        assertEquals(403,response.getStatus());
+    }
+
+    @Test
+    void deveProtegerRelatorioDeCompromissos() throws Exception {
+        MockHttpServletRequest request=new MockHttpServletRequest("GET","/api/relatorios/compromissos");
+        request.getSession().setAttribute("usuario","teste");
+        when(autenticacao.temPermissao("teste",FuncionalidadeEnum.CONSULTAR_COMPROMISSOS)).thenReturn(true);
+
+        assertTrue(interceptor.preHandle(request,new MockHttpServletResponse(),new Object()));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void deveBloquearQuandoServicoDeAutorizacaoEstiverIndisponivel() throws Exception {
+        ObjectProvider<AutenticacaoService> provider = mock(ObjectProvider.class);
+        when(provider.getIfAvailable()).thenReturn(null);
+        AutorizacaoInterceptor semAutenticacao = new AutorizacaoInterceptor(provider);
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/contas");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        assertFalse(semAutenticacao.preHandle(request, response, new Object()));
+        assertEquals(503, response.getStatus());
     }
 }
