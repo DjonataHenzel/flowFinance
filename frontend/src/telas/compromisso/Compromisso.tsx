@@ -2,7 +2,6 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import {
   alterarCompromisso,
   cadastrarCompromisso,
-  visualizarAnexoCompromisso,
   baixarAnexoCompromisso,
   listarPessoas,
   buscarPessoaSugerida,
@@ -436,7 +435,6 @@ export default function Compromisso({
                   />
                 </div>
                 <div className="acoes-anexo">
-                  <button type="button" aria-label={`Visualizar ${anexo.nomeArquivo}`} title="Visualizar" onClick={() => registro && visualizarAnexoCompromisso(registro.id, anexo.id).catch((e) => setErro(e.message))}><IconeVisualizar /></button>
                   <button type="button" aria-label={`Baixar ${anexo.nomeArquivo}`} title="Baixar" onClick={() => registro && baixarAnexoCompromisso(registro.id, anexo).catch((e) => setErro(e.message))}><IconeBaixar /></button>
                   <button type="button" className="remover-anexo" aria-label={`Remover ${anexo.nomeArquivo}`} title="Remover" onClick={() => setAnexosExistentes((atuais) => atuais.filter((_, i) => i !== indice))}><IconeRemover /></button>
                 </div>
@@ -458,7 +456,6 @@ export default function Compromisso({
                   />
                 </div>
                 <div className="acoes-anexo">
-                  <button type="button" aria-label={`Visualizar ${anexo.arquivo.name}`} title="Visualizar" onClick={() => visualizarArquivoLocal(anexo.arquivo)}><IconeVisualizar /></button>
                   <button type="button" aria-label={`Baixar ${anexo.arquivo.name}`} title="Baixar" onClick={() => baixarArquivoLocal(anexo.arquivo)}><IconeBaixar /></button>
                   <button type="button" className="remover-anexo" aria-label={`Remover ${anexo.arquivo.name}`} title="Remover" onClick={() => setAnexos((atuais) => atuais.filter((_, i) => i !== indice))}><IconeRemover /></button>
                 </div>
@@ -593,12 +590,6 @@ function formatarTamanho(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function visualizarArquivoLocal(arquivo: File) {
-  const url = URL.createObjectURL(arquivo);
-  window.open(url, "_blank", "noopener,noreferrer");
-  setTimeout(() => URL.revokeObjectURL(url), 60000);
-}
-
 function baixarArquivoLocal(arquivo: File) {
   const url = URL.createObjectURL(arquivo), link = document.createElement("a");
   link.href = url;
@@ -613,5 +604,4 @@ function IconeAdicionar() { return <svg viewBox="0 0 24 24" aria-hidden="true"><
 function IconeWhatsapp() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11.5a8 8 0 0 1-11.8 7L4 20l1.5-4.1A8 8 0 1 1 20 11.5Z" /><path d="M9 8.5c.5 2.8 2.2 4.5 5 5l1-1.2c.3-.3.7-.4 1-.2l1.5.7" /></svg>; }
 function IconeRemover() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5" /></svg>; }
 function IconeAnexo() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m20 11-8 8a5 5 0 0 1-7-7l9-9a3.5 3.5 0 0 1 5 5l-9 9a2 2 0 0 1-3-3l8-8" /></svg>; }
-function IconeVisualizar() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z" /><circle cx="12" cy="12" r="2.5" /></svg>; }
 function IconeBaixar() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 20h14" /></svg>; }

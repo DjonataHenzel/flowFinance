@@ -349,8 +349,9 @@ button, input, select, textarea { font: inherit; }
 .formulario-compromisso .linha-contato-compromisso { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr) 44px; align-items:center; gap:.6rem; }
 .formulario-compromisso .linha-contato-compromisso .campo-formulario { box-sizing:border-box; width:100%; height:44px; margin:0; }
 .formulario-compromisso .linha-contato-compromisso .botao-icone-contato { align-self:center; width:44px; height:44px; margin:0; }
-.lista-contatos-compromisso li>span { display:flex; min-width:0; flex-direction:column; gap:.15rem; }
-.lista-contatos-compromisso li>span small { color:#91a6c2; font-weight:400; }
+.lista-contatos-compromisso li>span { display:grid; flex:1; grid-template-columns:minmax(125px,160px) minmax(0,1fr); align-items:center; gap:.75rem; min-width:0; }
+.lista-contatos-compromisso li>span strong,.lista-contatos-compromisso li>span small { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.lista-contatos-compromisso li>span small { color:#91a6c2; font-size:.85rem; font-weight:400; }
 @media(max-width:600px){.rotulos-contato-compromisso{display:none}.formulario-compromisso .linha-contato-compromisso{grid-template-columns:1fr 44px}.formulario-compromisso .linha-contato-compromisso #descricao-whatsapp-compromisso{grid-column:1/-1;grid-row:2}}
 .formulario-compromisso .lista-anexos li { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:.6rem; padding:.75rem 0; }
 .formulario-compromisso .dados-anexo { display:grid; grid-template-columns:minmax(0,140px) minmax(150px,1fr); align-items:center; gap:.65rem; min-width:0; }
