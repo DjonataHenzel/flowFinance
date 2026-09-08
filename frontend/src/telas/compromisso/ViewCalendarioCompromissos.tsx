@@ -236,6 +236,11 @@ export default function ViewCalendarioCompromissos() {
                         </strong>
                         <span>{compromisso.descricao}</span>
                         <small>
+                          {[compromisso.categoria, compromisso.subcategoria]
+                            .filter(Boolean)
+                            .join(" · ") || "Sem categoria"}
+                        </small>
+                        <small>
                           {compromisso.pessoas.join(", ")} ·{" "}
                           {compromisso.situacao === "NOTIFICADO"
                             ? "Notificado"

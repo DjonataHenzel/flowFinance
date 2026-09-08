@@ -21,24 +21,28 @@ public class CategoriaService {
         Boolean visualizarTodos=jdbc.queryForObject("SELECT visualizar_cadastros_todos_usuarios FROM usuario WHERE usuario=?",Boolean.class,usuario);
         return jdbc.query("""
                 SELECT c.id, c.nome, c.descricao, c.criado_em,
-                       (SELECT COUNT(*) FROM contas m WHERE m.categoria_id = c.id)
+                      (SELECT COUNT(*) FROM contas m WHERE m.categoria_id = c.id),
+                      (SELECT COUNT(*) FROM subcategorias s WHERE s.categoria_id = c.id)
                   FROM categorias c
                   JOIN usuario u ON u.id = c.usuario_id
                  WHERE u.usuario = ? OR ?
                  ORDER BY LOWER(c.nome), c.id
                 """, (r, n) -> new CategoriaResumo(r.getLong(1), r.getString(2), r.getString(3),
-                        r.getObject(4, OffsetDateTime.class), r.getInt(5)), usuario,Boolean.TRUE.equals(visualizarTodos));
+                    r.getObject(4, OffsetDateTime.class), r.getInt(5), r.getInt(6)), usuario,Boolean.TRUE.equals(visualizarTodos));
     }
 
     public Optional<CategoriaResumo> buscar(long id, String usuario) {
         return jdbc.query("""
                 SELECT c.id, c.nome, c.descricao, c.criado_em,
-                       (SELECT COUNT(*) FROM contas m WHERE m.categoria_id = c.id)
+                      (SELECT COUNT(*) FROM contas m WHERE m.categoria_id = c.id),
+                      (SELECT COUNT(*) FROM subcategorias s WHERE s.categoria_id = c.id)
                   FROM categorias c
-                  JOIN usuario u ON u.id = c.usuario_id
-                 WHERE c.id = ? AND u.usuario = ?
+                  JOIN usuario autor ON autor.id = c.usuario_id
+                  JOIN usuario atual ON atual.usuario = ?
+                 WHERE c.id = ?
+                   AND (autor.usuario = ? OR atual.visualizar_cadastros_todos_usuarios)
                 """, (r, n) -> new CategoriaResumo(r.getLong(1), r.getString(2), r.getString(3),
-                        r.getObject(4, OffsetDateTime.class), r.getInt(5)), id, usuario).stream().findFirst();
+                    r.getObject(4, OffsetDateTime.class), r.getInt(5), r.getInt(6)), usuario, id, usuario).stream().findFirst();
     }
 
     @Transactional
@@ -63,10 +67,21 @@ public class CategoriaService {
 
     @Transactional
     public boolean excluir(long id, String usuario) {
-        Integer vinculadas = jdbc.queryForObject("SELECT COUNT(*) FROM contas m JOIN usuario u ON u.id=m.usuario_cadastro WHERE m.categoria_id=? AND u.usuario=?",
-                Integer.class, id, usuario);
+        Integer pertenceAoUsuario = jdbc.queryForObject("""
+                SELECT COUNT(*) FROM categorias c
+                JOIN usuario u ON u.id=c.usuario_id
+                WHERE c.id=? AND u.usuario=?
+                """, Integer.class, id, usuario);
+        if (pertenceAoUsuario == null || pertenceAoUsuario == 0) {
+            return false;
+        }
+        Integer vinculadas = jdbc.queryForObject("""
+                SELECT (SELECT COUNT(*) FROM contas WHERE categoria_id=?)
+                     + (SELECT COUNT(*) FROM compromissos WHERE categoria_id=?)
+                """, Integer.class, id, id);
         if (vinculadas != null && vinculadas > 0)
-            throw new IllegalArgumentException("A categoria está vinculada a movimentações e não pode ser excluída");
+            throw new IllegalArgumentException("A categoria está vinculada a contas ou compromissos e não pode ser excluída");
+        jdbc.update("DELETE FROM subcategorias WHERE categoria_id=?", id);
         return jdbc.update("DELETE FROM categorias WHERE id=? AND usuario_id=(SELECT id FROM usuario WHERE usuario=?)", id, usuario) > 0;
     }
 
@@ -74,6 +89,6 @@ public class CategoriaService {
         return descricao == null || descricao.isBlank() ? null : descricao.trim();
     }
 
-    public record CategoriaResumo(long id, String nome, String descricao, OffsetDateTime criadoEm,
-            int quantidadeMovimentacoes) {}
+        public record CategoriaResumo(long id, String nome, String descricao, OffsetDateTime criadoEm,
+            int quantidadeMovimentacoes, int quantidadeSubcategorias) {}
 }

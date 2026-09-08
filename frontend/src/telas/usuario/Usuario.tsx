@@ -1,6 +1,13 @@
 import { FormEvent, useEffect, useState } from "react";
-import { alterarUsuario, cadastrarUsuario, listarPapeis } from "../../api";
-import type { PapelResumo, UsuarioResumo } from "../../api";
+import {
+  alterarUsuario,
+  cadastrarUsuario,
+  listarPapeis,
+  listarPessoasVinculaveis,
+} from "../../api";
+import type { PapelResumo, PessoaVinculavel, UsuarioResumo } from "../../api";
+
+const SENHA_MANTIDA = "********";
 
 export default function Usuario({
   registro,
@@ -12,14 +19,20 @@ export default function Usuario({
   aoCancelar: () => void;
 }) {
   const [usuario, setUsuario] = useState(registro?.usuario ?? ""),
-    [senha, setSenha] = useState(""),
-    [confirmacao, setConfirmacao] = useState(""),
+    [senha, setSenha] = useState(registro ? SENHA_MANTIDA : ""),
+    [confirmacao, setConfirmacao] = useState(registro ? SENHA_MANTIDA : ""),
+    [mostrarSenha, setMostrarSenha] = useState(false),
+    [mostrarConfirmacao, setMostrarConfirmacao] = useState(false),
     [ativo, setAtivo] = useState(registro?.ativo ?? true),
     [visualizarTodos, setVisualizarTodos] = useState(registro?.visualizarCadastrosTodosUsuarios ?? false),
     [papelId, setPapelId] = useState(
       registro?.papelId ? String(registro.papelId) : "",
     ),
+    [pessoaId, setPessoaId] = useState(
+      registro?.pessoaId ? String(registro.pessoaId) : "",
+    ),
     [papeis, setPapeis] = useState<PapelResumo[]>([]),
+    [pessoas, setPessoas] = useState<PessoaVinculavel[]>([]),
     [erro, setErro] = useState(""),
     [salvando, setSalvando] = useState(false);
   useEffect(() => {
@@ -28,6 +41,7 @@ export default function Usuario({
         setPapeis(lista.filter((p) => p.ativo || p.id === registro?.papelId)),
       )
       .catch((e) => setErro(e.message));
+    listarPessoasVinculaveis(registro?.id).then(setPessoas).catch((e) => setErro(e.message));
   }, [registro]);
 
   async function salvar(e: FormEvent) {
@@ -44,13 +58,18 @@ export default function Usuario({
     }
     setSalvando(true);
     try {
+      const senhaParaEnvio =
+        registro && senha === SENHA_MANTIDA && confirmacao === SENHA_MANTIDA
+          ? ""
+          : senha;
       registro
         ? await alterarUsuario(
             registro.id,
             usuario,
-            senha,
+            senhaParaEnvio,
             ativo,
             Number(papelId),
+            pessoaId ? Number(pessoaId) : null,
             false,
             [],
             false,
@@ -63,6 +82,7 @@ export default function Usuario({
             usuario,
             senha,
             Number(papelId),
+            pessoaId ? Number(pessoaId) : null,
             false,
             [],
             false,
@@ -90,48 +110,100 @@ export default function Usuario({
         maxLength={100}
         required
       />
-      <label className="rotulo-campo">Papel/permissão *</label>
-      <select
-        className="campo-formulario"
-        value={papelId}
-        onChange={(e) => setPapelId(e.target.value)}
-        required
-      >
-        <option value="">Selecione um papel</option>
-        {papeis.map((p) => (
-          <option key={p.id} value={p.id}>
-            {p.nome}
-          </option>
-        ))}
-      </select>
+      <div className="grade-baixa grade-vinculos-usuario">
+        <label className="rotulo-campo">
+          Papel/permissão *
+          <select
+            className="campo-formulario"
+            value={papelId}
+            onChange={(e) => setPapelId(e.target.value)}
+            required
+          >
+            <option value="">Selecione um papel</option>
+            {papeis.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.nome}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="rotulo-campo">
+          Pessoa vinculada
+          <select
+            className="campo-formulario"
+            value={pessoaId}
+            onChange={(e) => setPessoaId(e.target.value)}
+          >
+            <option value="">Sem pessoa vinculada</option>
+            {pessoas.map((pessoa) => (
+              <option key={pessoa.id} value={pessoa.id}>
+                {pessoa.nome}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
       {!papeis.length && (
         <small className="ajuda-campo">
           Cadastre um papel ativo na tela de permissões antes de criar o
           usuário.
         </small>
       )}
-      <label className="rotulo-campo">
-        Senha {registro ? "(deixe em branco para manter)" : "*"}
-      </label>
-      <input
-        className="campo-formulario"
-        type="password"
-        value={senha}
-        onChange={(e) => setSenha(e.target.value)}
-        minLength={4}
-        maxLength={72}
-        required={!registro}
-      />
-      <label className="rotulo-campo">
-        Confirmar senha {registro ? "" : "*"}
-      </label>
-      <input
-        className="campo-formulario"
-        type="password"
-        value={confirmacao}
-        onChange={(e) => setConfirmacao(e.target.value)}
-        required={!registro}
-      />
+      <small className="ajuda-campo">
+        Essa pessoa será sugerida nas notificações de novas contas e compromissos.
+      </small>
+      <label className="rotulo-campo">Senha *</label>
+      <div className="campo-senha">
+        <input
+          className="campo-formulario"
+          type={mostrarSenha ? "text" : "password"}
+          value={senha}
+          onFocus={() => limparSenhaMantida(senha, setSenha, setConfirmacao)}
+          onChange={(e) => setSenha(e.target.value)}
+          minLength={4}
+          maxLength={72}
+          required
+          autoComplete="new-password"
+        />
+        <button
+          className="botao-visualizar-senha"
+          type="button"
+          aria-label={mostrarSenha ? "Ocultar senha" : "Visualizar senha"}
+          title={mostrarSenha ? "Ocultar senha" : "Visualizar senha"}
+          onClick={() => setMostrarSenha((mostrar) => !mostrar)}
+        >
+          <IconeOlho aberto={mostrarSenha} />
+        </button>
+      </div>
+      <label className="rotulo-campo">Confirmar senha *</label>
+      <div className="campo-senha">
+        <input
+          className="campo-formulario"
+          type={mostrarConfirmacao ? "text" : "password"}
+          value={confirmacao}
+          onFocus={() =>
+            limparSenhaMantida(confirmacao, setSenha, setConfirmacao)
+          }
+          onChange={(e) => setConfirmacao(e.target.value)}
+          minLength={4}
+          maxLength={72}
+          required
+          autoComplete="new-password"
+        />
+        <button
+          className="botao-visualizar-senha"
+          type="button"
+          aria-label={
+            mostrarConfirmacao
+              ? "Ocultar confirmação da senha"
+              : "Visualizar confirmação da senha"
+          }
+          title={mostrarConfirmacao ? "Ocultar senha" : "Visualizar senha"}
+          onClick={() => setMostrarConfirmacao((mostrar) => !mostrar)}
+        >
+          <IconeOlho aberto={mostrarConfirmacao} />
+        </button>
+      </div>
       {registro && (
         <label className="rotulo-campo opcao-checkbox">
           <input
@@ -163,5 +235,25 @@ export default function Usuario({
         </button>
       </div>
     </form>
+  );
+}
+
+function limparSenhaMantida(
+  valor: string,
+  setSenha: (valor: string) => void,
+  setConfirmacao: (valor: string) => void,
+) {
+  if (valor !== SENHA_MANTIDA) return;
+  setSenha("");
+  setConfirmacao("");
+}
+
+function IconeOlho({ aberto }: { aberto: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
+      <circle cx="12" cy="12" r="2.75" />
+      {!aberto && <path d="m4 4 16 16" />}
+    </svg>
   );
 }

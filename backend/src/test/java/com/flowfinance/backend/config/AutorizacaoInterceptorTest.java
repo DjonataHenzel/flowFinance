@@ -75,6 +75,17 @@ class AutorizacaoInterceptorTest {
     }
 
     @Test
+    void deveExigirPermissaoParaSubcategorias() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest("PUT", "/api/subcategorias/10");
+        request.getSession().setAttribute("usuario", "teste");
+        when(autenticacao.temPermissao("teste", FuncionalidadeEnum.ALTERAR_SUBCATEGORIAS)).thenReturn(false);
+
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        assertFalse(interceptor.preHandle(request, response, new Object()));
+        assertEquals(403, response.getStatus());
+    }
+
+    @Test
     @SuppressWarnings("unchecked")
     void deveBloquearQuandoServicoDeAutorizacaoEstiverIndisponivel() throws Exception {
         ObjectProvider<AutenticacaoService> provider = mock(ObjectProvider.class);

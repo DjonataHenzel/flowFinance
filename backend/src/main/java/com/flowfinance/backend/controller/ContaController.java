@@ -89,7 +89,8 @@ public class ContaController {
     private MediaType tipoArquivo(String tipo) { try{return tipo==null?MediaType.APPLICATION_OCTET_STREAM:MediaType.parseMediaType(tipo);}catch(org.springframework.http.InvalidMediaTypeException e){return MediaType.APPLICATION_OCTET_STREAM;} }
     private String usuario(HttpSession sessao) { return sessao.getAttribute("usuario").toString(); }
     public record NovaContaRequest(@NotBlank String descricao, @NotNull @DecimalMin("0.01") BigDecimal valorTotal,
-            @NotNull TipoContaEnum tipo, List<Long> pessoaIds, @NotNull Long categoriaId, Long contaBancariaId, boolean debitoAutomatico,
+            @NotNull TipoContaEnum tipo, List<Long> pessoaIds, @NotNull Long categoriaId, Long subcategoriaId,
+            Long contaBancariaId, boolean debitoAutomatico,
             boolean recorrente, FrequenciaRecorrenciaEnum frequenciaRecorrencia,
             List<@Valid ParcelaContaRequest> parcelas) {}
     public record ParcelaContaRequest(@Min(1) int numero, @NotNull @DecimalMin("0.01") BigDecimal valor, @NotNull LocalDate dataVencimento) {}

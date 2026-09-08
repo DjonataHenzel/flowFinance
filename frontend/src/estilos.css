@@ -169,10 +169,31 @@ button, input, select, textarea { font: inherit; }
 .lista-movimentacoes li { display: flex; justify-content: space-between; padding: .9rem 0; border-bottom: 1px solid #edf1f5; }
 .texto-verde { color: #1dbf73; } .texto-vermelho { color: #ef5a5a; } .texto-azul { color: #2c7be5; }
 .formulario-movimentacao { max-width: 600px; margin: 0 auto; }
+.formulario-compromisso { width: min(100%,720px); max-width: 720px; }
+.formulario-compromisso .rotulo-campo > .campo-formulario { display:block; box-sizing:border-box; min-height:44px; margin-top:.4rem; }
 .secao-endereco-compromisso { margin-top:1rem; border:1px solid rgba(56,189,248,.2); border-radius:12px; background:rgba(2,12,29,.28); }
 .secao-endereco-compromisso summary { padding:1rem; color:#dff5ff; font-weight:700; cursor:pointer; }
 .secao-endereco-compromisso summary small { color:#91a6c2; font-weight:400; }
 .conteudo-endereco-compromisso { padding:0 1rem 1rem; }
+.linha-contato-compromisso { display:flex; align-items:flex-end; gap:.65rem; }
+.linha-contato-compromisso .rotulo-campo { flex:1 1 auto; width:auto; min-width:0; }
+.linha-contato-compromisso .campo-formulario { width:100%; }
+.botao-icone-contato { display:grid; flex:0 0 44px; place-items:center; width:44px; height:44px; padding:0; border:1px solid transparent; border-radius:11px; color:#fff; cursor:pointer; transition:transform .15s ease,filter .15s ease,background .15s ease; }
+.botao-icone-contato:hover { filter:brightness(1.12); transform:translateY(-1px); }
+.botao-icone-contato svg,.botao-selecionar-anexos svg { width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+.botao-icone-contato.adicionar { margin-bottom:0; background:#2563eb; box-shadow:0 7px 18px rgba(37,99,235,.22); }
+.botao-icone-contato.whatsapp { background:#16a34a; text-decoration:none; box-shadow:0 7px 18px rgba(22,163,74,.18); }
+.botao-icone-contato.remover { background:rgba(185,28,28,.16); border-color:rgba(248,113,113,.35); color:#f87171; }
+.lista-contatos-compromisso { margin:.9rem 0 0; padding:0; list-style:none; }
+.lista-contatos-compromisso li { display:flex; align-items:center; justify-content:space-between; gap:.75rem; padding:.65rem .75rem; border:1px solid rgba(148,163,184,.16); border-radius:10px; background:rgba(15,35,61,.55); }
+.lista-contatos-compromisso li+li { margin-top:.55rem; }
+.lista-contatos-compromisso li>span { color:#e2edf9; font-weight:600; letter-spacing:.01em; }
+.acoes-contato-compromisso { display:flex; align-items:center; gap:.5rem; }
+.cabecalho-anexos-compromisso { display:flex; justify-content:flex-end; }
+.entrada-anexo-oculta { position:absolute; width:1px; height:1px; overflow:hidden; opacity:0; pointer-events:none; }
+.botao-selecionar-anexos { display:flex; align-items:center; gap:.5rem; padding:.7rem 1rem; border:0; border-radius:9px; color:#fff; background:#2563eb; font-weight:700; cursor:pointer; box-shadow:0 7px 18px rgba(37,99,235,.2); }
+.formulario-compromisso .acoes-anexo button { display:grid; width:2.25rem; padding:.4rem; }
+@media(max-width:600px){.lista-contatos-compromisso li{align-items:flex-start}.acoes-contato-compromisso{flex-shrink:0}}
 .cabecalho-listagem { display: flex; align-items: start; justify-content: space-between; gap: 1rem; }
 .acoes-cabecalho { display:flex; align-items:center; gap:.75rem; }
 .botao-whatsapp { display:flex; align-items:center; gap:.5rem; padding:.75rem 1rem; border:0; border-radius:9px; color:#fff; background:#16a34a; font-weight:700; cursor:pointer; white-space:nowrap; }
@@ -194,11 +215,14 @@ button, input, select, textarea { font: inherit; }
 .acoes-linha button { padding:.4rem .65rem; border:1px solid #3b5577; border-radius:7px; color:#dce8f8; background:#10233e; cursor:pointer; }
 .acoes-linha .acao-perigosa { color:#fda4af; border-color:rgba(248,113,113,.35); }
 .ajuda-campo { display: block; margin-top: .4rem; color: #64748b; }
-.secao-notificacao { margin-top:1.5rem; padding:1.25rem; border:1px solid #dbe4f0; border-radius:12px; background:#f8fafc; }
-.secao-notificacao h2 { margin:0 0 .85rem; font-size:1.1rem; }
-.secao-notificacao > .campo-formulario { margin-bottom:.75rem; }
-.secao-notificacao .linha-contato { align-items:stretch; gap:.65rem; }
-.secao-notificacao .linha-contato .botao-adicionar { min-width:9rem; }
+.secao-notificacao,.secao-cadastro-pessoa { margin-top:1.5rem; padding:1.25rem; border:1px solid #dbe4f0; border-radius:12px; background:#f8fafc; }
+.secao-cadastro-pessoa + .secao-cadastro-pessoa,.secao-cadastro-pessoa + .secao-notificacao { margin-top:.75rem; }
+.secao-notificacao h2,.secao-cadastro-pessoa h2 { margin:0 0 .85rem; font-size:1.1rem; }
+.linha-canal-notificacao { display:grid; grid-template-columns:minmax(120px,.75fr) minmax(0,1.4fr) auto; align-items:stretch; gap:.65rem; }
+.linha-canal-notificacao-ntfy { grid-template-columns:minmax(90px,.6fr) minmax(0,1.2fr) auto auto; }
+.linha-canal-notificacao .botao-adicionar { min-width:9rem; }
+.linha-canal-notificacao-ntfy .botao-adicionar { min-width:0; }
+.linha-canal-notificacao .botao-gerar-topico { margin:0; white-space:nowrap; }
 .secao-notificacao > .botao-secundario { margin-top:.65rem; }
 .opcao-checkbox { display:flex; align-items:center; gap:.55rem; cursor:pointer; }
 .opcao-checkbox input { width:1rem; height:1rem; margin:0; accent-color:#2c7be5; }
@@ -209,8 +233,12 @@ button, input, select, textarea { font: inherit; }
 .cadastro-whatsapp { margin-top:1rem; }
 .linha-contato { display:grid; grid-template-columns:1fr auto; gap:.75rem; }
 .lista-contatos-whatsapp { margin:.8rem 0 0; padding:0; list-style:none; }
-.lista-contatos-whatsapp li { display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:.65rem 0; border-bottom:1px solid #dbe4f0; }
+.lista-contatos-whatsapp li { position:relative; display:flex; align-items:center; justify-content:center; min-height:2rem; padding:.65rem 2.5rem; border-bottom:1px solid #dbe4f0; text-align:center; }
+.lista-contatos-whatsapp li > span { overflow-wrap:anywhere; }
 .lista-contatos-whatsapp button { border:0; color:#b91c1c; background:transparent; cursor:pointer; }
+.lista-contatos-whatsapp .botao-remover-destino { position:absolute; top:50%; right:0; display:grid; place-items:center; width:2rem; height:2rem; padding:0; border-radius:6px; transform:translateY(-50%); }
+.lista-contatos-whatsapp .botao-remover-destino:hover,.lista-contatos-whatsapp .botao-remover-destino:focus-visible { color:#fda4af; background:rgba(248,113,113,.12); }
+.botao-remover-destino svg { width:1.15rem; height:1.15rem; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
 .configuracao-ntfy { margin-top:1rem; }
 .acoes-ntfy { display:flex; gap:.75rem; margin-top:.75rem; }
 .acoes-ntfy a,.acoes-ntfy button { padding:.6rem .8rem; border:1px solid #2c7be5; border-radius:8px; color:#2563eb; background:transparent; font-weight:700; text-decoration:none; cursor:pointer; }
@@ -227,6 +255,25 @@ button, input, select, textarea { font: inherit; }
 .destinos-whatsapp button { display:flex; align-items:center; justify-content:center; gap:.5rem; padding:.8rem; border:0; border-radius:9px; color:#fff; background:#16a34a; font-weight:700; cursor:pointer; }
 .botao-copiar-whatsapp { display:block; margin:-.5rem 0 1rem auto; padding:.55rem .75rem; border:1px solid #cbd5e1; border-radius:8px; color:#334155; background:#fff; cursor:pointer; }
 .grade-baixa { display:grid; grid-template-columns:1fr 1fr; gap:0 1rem; }
+.grade-identificacao-pessoa { display:grid; grid-template-columns:minmax(0,1fr) 11rem; gap:0 1rem; }
+.grade-identificacao-pessoa > .rotulo-campo { min-width:0; }
+.grade-vinculos-usuario > .rotulo-campo { min-width:0; }
+.grade-vinculos-usuario .campo-formulario { margin-top:.4rem; }
+.campo-senha { position:relative; }
+.campo-senha .campo-formulario { padding-right:3rem; }
+.botao-visualizar-senha { position:absolute; top:50%; right:.45rem; display:grid; place-items:center; width:2.25rem; height:2.25rem; padding:0; border:0; border-radius:7px; color:#91a6c2; background:transparent; transform:translateY(-50%); cursor:pointer; }
+.botao-visualizar-senha:hover,.botao-visualizar-senha:focus-visible { color:#7dd3fc; background:rgba(56,189,248,.1); }
+.botao-visualizar-senha svg { width:1.25rem; height:1.25rem; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+.grade-compromisso-principal { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); align-items:start; gap:0 1rem; width:100%; }
+.grade-compromisso-principal > .rotulo-campo,.grade-classificacao-compromisso > .rotulo-campo { min-width:0; }
+.grade-notificacao-compromisso { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); align-items:start; gap:0 1rem; width:100%; }
+.grade-notificacao-compromisso > * { min-width:0; }
+.grade-classificacao-compromisso { display:grid; grid-template-columns:1fr; width:100%; }
+.campo-cidade-uf { display:grid; grid-template-columns:minmax(0,1fr) 4.5rem; gap:0 1rem; }
+.campo-cidade-uf .rotulo-campo { min-width:0; }
+@media (max-width:650px) { .grade-compromisso-principal,.grade-notificacao-compromisso { grid-template-columns:1fr; } }
+@media (max-width:650px) { .grade-identificacao-pessoa,.linha-canal-notificacao { grid-template-columns:1fr; } }
+@media (max-width:650px) { .campo-cidade-uf { grid-template-columns:minmax(0,1fr) 4.5rem; gap:0 .75rem; } }
 .filtros-pessoas { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto; align-items:end; gap:.75rem; margin:1.25rem 0; }
 .filtros-pessoas .rotulo-campo { margin:0; }
 .calendario-painel { max-width: 1400px; margin-left: auto; margin-right: auto; }
@@ -297,6 +344,23 @@ button, input, select, textarea { font: inherit; }
 .acoes-anexo svg { width:1.2rem; height:1.2rem; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
 .acoes-anexo .remover-anexo { color:#b91c1c; }
 .acoes-anexo .remover-anexo:hover { background:#fef2f2; }
+.formulario-compromisso .lista-anexos { margin-top:.9rem; }
+.rotulos-contato-compromisso { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr) 44px; gap:.6rem; margin:.15rem 0 .4rem; color:#b8c8da; font-size:.9rem; font-weight:600; }
+.formulario-compromisso .linha-contato-compromisso { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr) 44px; align-items:center; gap:.6rem; }
+.formulario-compromisso .linha-contato-compromisso .campo-formulario { box-sizing:border-box; width:100%; height:44px; margin:0; }
+.formulario-compromisso .linha-contato-compromisso .botao-icone-contato { align-self:center; width:44px; height:44px; margin:0; }
+.lista-contatos-compromisso li>span { display:flex; min-width:0; flex-direction:column; gap:.15rem; }
+.lista-contatos-compromisso li>span small { color:#91a6c2; font-weight:400; }
+@media(max-width:600px){.rotulos-contato-compromisso{display:none}.formulario-compromisso .linha-contato-compromisso{grid-template-columns:1fr 44px}.formulario-compromisso .linha-contato-compromisso #descricao-whatsapp-compromisso{grid-column:1/-1;grid-row:2}}
+.formulario-compromisso .lista-anexos li { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:.6rem; padding:.75rem 0; }
+.formulario-compromisso .dados-anexo { display:grid; grid-template-columns:minmax(0,140px) minmax(150px,1fr); align-items:center; gap:.65rem; min-width:0; }
+.formulario-compromisso .identificacao-anexo { min-width:0; }
+.formulario-compromisso .dados-anexo strong { overflow:hidden; color:#dce8f8; text-overflow:ellipsis; white-space:nowrap; }
+.formulario-compromisso .descricao-anexo { box-sizing:border-box; min-width:0; min-height:44px; margin-top:0; }
+.formulario-compromisso .acoes-anexo { display:flex; align-self:end; align-items:center; gap:.35rem; padding-bottom:0; }
+.formulario-compromisso .acoes-anexo button { display:grid; place-items:center; width:44px; height:44px; padding:0; border:1px solid rgba(59,130,246,.24); border-radius:10px; color:#60a5fa; background:rgba(37,99,235,.08); }
+.formulario-compromisso .acoes-anexo .remover-anexo { border-color:rgba(248,113,113,.25); color:#f87171; background:rgba(185,28,28,.1); }
+@media(max-width:600px){.formulario-compromisso .lista-anexos li{grid-template-columns:1fr}.formulario-compromisso .dados-anexo{grid-template-columns:minmax(0,120px) minmax(130px,1fr)}.formulario-compromisso .acoes-anexo{justify-content:flex-end}}
 @media (max-width:650px) { .cabecalho-principal { padding: 0 1rem; } .marca { margin-right: .5rem; } .area-usuario span { display: none; } .grade-baixa,.linha-contato,.filtros-pessoas { grid-template-columns:1fr; } .cabecalho-listagem,.acoes-cabecalho { flex-direction:column; } .acoes-formulario { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); } .acoes-formulario .botao-primario,.acoes-formulario .botao-secundario { width:100%; } .calendario-cabecalho { align-items:stretch; } .calendario-controles h2 { min-width:0; font-size:1.05rem; } .calendario-dia { min-height:72px; padding:.3rem; } .calendario-dia-semana { padding:.45rem .1rem; font-size:.65rem; } .indicador-compromissos { padding:.22rem; font-size:.62rem; } .popup-compromissos-dia { left:50%; transform:translateX(-50%); } }
 
 /* Tema tecnológico escuro */
@@ -318,7 +382,7 @@ button, input, select, textarea { font: inherit; }
 .pagina-home .campo-formulario:disabled { color:#a9b9cd; background:#10233e; }
 .pagina-home .rotulo-campo { color:#b8c8da; }
 .pagina-home .secao-expansivel,.pagina-home .secao-parcelas { border-color:rgba(56,189,248,.18); background:rgba(2,12,29,.42); }
-.pagina-home .secao-notificacao { border-color:rgba(56,189,248,.18); background:rgba(2,12,29,.42); }
+.pagina-home .secao-notificacao,.pagina-home .secao-cadastro-pessoa { border-color:rgba(56,189,248,.18); background:rgba(2,12,29,.42); }
 .pagina-home .lista-contatos-whatsapp li { border-bottom-color:rgba(148,163,184,.16); }
 .pagina-home .previa-whatsapp { color:#dce8f8; border-color:rgba(56,189,248,.18); background:rgba(2,12,29,.42); }
 .pagina-home .cabecalho-secao { color:#dce8f8; }

@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
+import jakarta.servlet.http.HttpSession;
 
 @RestController
 @RequestMapping("/api/pessoas")
@@ -16,6 +17,11 @@ public class PessoaController {
     public PessoaController(PessoaService service) { this.service = service; }
 
     @GetMapping public List<PessoaService.PessoaResumo> listar() { return service.listar(); }
+    @GetMapping("/sugestao-notificacao")
+    public ResponseEntity<PessoaService.PessoaResumo> sugestaoNotificacao(HttpSession sessao) {
+        return service.buscarSugestaoNotificacao(sessao.getAttribute("usuario").toString())
+                .map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.noContent().build());
+    }
     @GetMapping("/{id}") public ResponseEntity<PessoaService.PessoaDetalhe> buscar(@PathVariable long id) {
         return service.buscar(id).map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
     }

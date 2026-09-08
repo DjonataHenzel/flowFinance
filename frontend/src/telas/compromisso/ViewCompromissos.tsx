@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 import { excluirCompromisso, listarCompromissos } from "../../api";
-import type { CompromissoResumo, PessoaResumo } from "../../api";
+import type {
+  CompromissoResumo,
+  PessoaResumo,
+  SituacaoCompromisso,
+} from "../../api";
 import { listarPessoas } from "../../api";
 import Compromisso from "./Compromisso";
 const situacao = {
@@ -10,13 +14,31 @@ const situacao = {
   CONCLUIDO: "Concluído",
   NOTIFICADO: "Notificado",
 };
+function dataLocal(data: Date) {
+  const ano = data.getFullYear();
+  const mes = String(data.getMonth() + 1).padStart(2, "0");
+  const dia = String(data.getDate()).padStart(2, "0");
+  return `${ano}-${mes}-${dia}`;
+}
+function periodoMesAtual() {
+  const hoje = new Date();
+  return {
+    inicio: dataLocal(new Date(hoje.getFullYear(), hoje.getMonth(), 1)),
+    fim: dataLocal(new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0)),
+  };
+}
 export default function ViewCompromissos() {
+  const periodoInicial = periodoMesAtual();
   const [lista, setLista] = useState<CompromissoResumo[]>([]),
     [edicao, setEdicao] = useState<number | null | undefined>(undefined),
     [duplicando, setDuplicando] = useState(false),
     [erro, setErro] = useState(""),
     [descricaoFiltro, setDescricaoFiltro] = useState(""),
     [pessoaFiltro, setPessoaFiltro] = useState(""),
+    [situacaoFiltro, setSituacaoFiltro] =
+      useState<SituacaoCompromisso | "">("PENDENTE"),
+    [dataInicio, setDataInicio] = useState(periodoInicial.inicio),
+    [dataFim, setDataFim] = useState(periodoInicial.fim),
     [pessoas, setPessoas] = useState<PessoaResumo[]>([]),
     [menu, setMenu] = useState<{ id: number; x: number; y: number } | null>(
       null,
@@ -70,12 +92,19 @@ export default function ViewCompromissos() {
     setMenu(null);
   }
   const filtradas = lista.filter(
-    (c) =>
+    (c) => {
+      const data = dataLocal(new Date(c.dataHora));
+      return (
       (!descricaoFiltro ||
         c.descricao
           .toLocaleLowerCase("pt-BR")
           .includes(descricaoFiltro.toLocaleLowerCase("pt-BR"))) &&
-      (!pessoaFiltro || c.pessoaIds.includes(Number(pessoaFiltro))),
+        (!pessoaFiltro || c.pessoaIds.includes(Number(pessoaFiltro))) &&
+        (!situacaoFiltro || c.situacao === situacaoFiltro) &&
+        (!dataInicio || data >= dataInicio) &&
+        (!dataFim || data <= dataFim)
+      );
+    },
   );
   return (
     <section className="painel">
@@ -94,7 +123,7 @@ export default function ViewCompromissos() {
           + Novo compromisso
         </button>
       </div>
-      <div className="filtros-contas filtros-pessoas">
+      <div className="filtros-contas">
         <label className="rotulo-campo">
           Descrição
           <input
@@ -119,12 +148,51 @@ export default function ViewCompromissos() {
             ))}
           </select>
         </label>
+        <label className="rotulo-campo">
+          Situação
+          <select
+            className="campo-formulario"
+            value={situacaoFiltro}
+            onChange={(e) =>
+              setSituacaoFiltro(e.target.value as SituacaoCompromisso | "")
+            }
+          >
+            <option value="">Todos</option>
+            {Object.entries(situacao).map(([valor, rotulo]) => (
+              <option key={valor} value={valor}>
+                {rotulo}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="rotulo-campo">
+          Data inicial
+          <input
+            className="campo-formulario"
+            type="date"
+            value={dataInicio}
+            onChange={(e) => setDataInicio(e.target.value)}
+          />
+        </label>
+        <label className="rotulo-campo">
+          Data final
+          <input
+            className="campo-formulario"
+            type="date"
+            value={dataFim}
+            onChange={(e) => setDataFim(e.target.value)}
+          />
+        </label>
         <button
           className="botao-limpar-filtros"
           type="button"
           onClick={() => {
             setDescricaoFiltro("");
             setPessoaFiltro("");
+            setSituacaoFiltro("PENDENTE");
+            const periodo = periodoMesAtual();
+            setDataInicio(periodo.inicio);
+            setDataFim(periodo.fim);
           }}
         >
           Limpar filtros
@@ -139,6 +207,7 @@ export default function ViewCompromissos() {
               <th>Descrição</th>
               <th>Pessoa</th>
               <th>Categoria</th>
+              <th>Subcategoria</th>
               <th>Notificar</th>
               <th>Situação</th>
             </tr>
@@ -157,6 +226,7 @@ export default function ViewCompromissos() {
                 <td>{c.descricao}</td>
                 <td>{c.pessoas.join(", ")}</td>
                 <td>{c.categoria ?? "Sem categoria"}</td>
+                <td>{c.subcategoria ?? "Sem subcategoria"}</td>
                 <td>{c.horaNotificacao.slice(0, 5)}</td>
                 <td>
                   <span
@@ -169,7 +239,7 @@ export default function ViewCompromissos() {
             ))}
             {!filtradas.length && (
               <tr>
-                <td colSpan={6} className="lista-vazia">
+                <td colSpan={7} className="lista-vazia">
                   Nenhum compromisso cadastrado.
                 </td>
               </tr>

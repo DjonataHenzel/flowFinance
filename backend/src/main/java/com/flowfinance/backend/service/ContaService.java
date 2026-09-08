@@ -5,6 +5,8 @@ import com.flowfinance.backend.model.SituacaoContaEnum;
 import com.flowfinance.backend.model.SituacaoParcelaEnum;
 import com.flowfinance.backend.model.TipoContaEnum;
 import com.flowfinance.backend.model.FrequenciaRecorrenciaEnum;
+import com.flowfinance.backend.model.MensagemNotificacaoEnum;
+import com.flowfinance.backend.model.MensagemNotificacaoEnum.ContaNotificacao;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Value;
@@ -21,8 +23,6 @@ import java.util.*;
 
 @Service
 public class ContaService {
-    private static final Locale LOCALE_BRASIL = Locale.of("pt", "BR");
-
     private final JdbcTemplate jdbc;
     private final HttpClient httpClient;
     private final String ntfyBaseUrl;
@@ -39,7 +39,7 @@ public class ContaService {
 
     public List<ContaResumo> listar(String usuario, LocalDate dataInicial, LocalDate dataFinal) {
         boolean visualizarTodos = visualizarCadastrosTodosUsuarios(usuario);
-        StringBuilder sql = new StringBuilder("SELECT c.id,c.descricao,c.valor_total,c.tipo,c.situacao,c.criado_em,c.baixada_em,c.pessoa_id,(c.situacao IN ('PAGA','RECEBIDA') OR EXISTS(SELECT 1 FROM parcelas_contas p WHERE p.conta_id=c.id AND p.situacao<>'PENDENTE')),c.categoria_id,cat.nome,(SELECT MIN(pv.data_vencimento) FROM parcelas_contas pv WHERE pv.conta_id=c.id) data_vencimento FROM contas c LEFT JOIN usuario u ON u.id=c.usuario_cadastro LEFT JOIN categorias cat ON cat.id=c.categoria_id WHERE 1=1");
+        StringBuilder sql = new StringBuilder("SELECT c.id,c.descricao,c.valor_total,c.tipo,c.situacao,c.criado_em,c.baixada_em,c.pessoa_id,(c.situacao IN ('PAGA','RECEBIDA') OR EXISTS(SELECT 1 FROM parcelas_contas p WHERE p.conta_id=c.id AND p.situacao<>'PENDENTE')),c.categoria_id,cat.nome,c.subcategoria_id,sub.nome,(SELECT MIN(pv.data_vencimento) FROM parcelas_contas pv WHERE pv.conta_id=c.id) data_vencimento FROM contas c LEFT JOIN usuario u ON u.id=c.usuario_cadastro LEFT JOIN categorias cat ON cat.id=c.categoria_id LEFT JOIN subcategorias sub ON sub.id=c.subcategoria_id WHERE 1=1");
         List<Object> parametros = new ArrayList<>();
         if (!visualizarTodos) {
             sql.append(" AND u.usuario=?");
@@ -62,7 +62,10 @@ public class ContaService {
                 sql.toString(),
                 (r, n) -> new ContaResumo(r.getLong(1), r.getString(2), r.getBigDecimal(3),
                         TipoContaEnum.valueOf(r.getString(4)), SituacaoContaEnum.valueOf(r.getString(5)),
-                        r.getObject(6, OffsetDateTime.class), r.getObject(7, OffsetDateTime.class), r.getBoolean(9), r.getObject(8, Long.class), r.getObject(10, Long.class), r.getString(11),r.getObject(12,LocalDate.class)),parametros.toArray());
+                        r.getObject(6, OffsetDateTime.class), r.getObject(7, OffsetDateTime.class), r.getBoolean(9),
+                        r.getObject(8, Long.class), r.getObject(10, Long.class), r.getString(11),
+                        r.getObject(12, Long.class), r.getString(13), r.getObject(14, LocalDate.class)),
+                parametros.toArray());
     }
 
     public NotificacaoWhatsapp buscarNotificacaoWhatsapp(String usuario) {
@@ -71,7 +74,7 @@ public class ContaService {
                 (r, n) -> new DestinoWhatsapp(r.getString(1)), usuario);
         if (destinos.isEmpty()) throw new IllegalArgumentException("Associe uma pessoa com WhatsApp às contas vencendo hoje");
         List<String> contatos = destinos.stream().map(DestinoWhatsapp::numero).filter(Objects::nonNull).toList();
-        List<ContaVencendo> contas = jdbc.query("""
+        List<ContaNotificacao> contas = jdbc.query("""
                 SELECT c.descricao,p.numero,c.qtd_parcelas,p.valor
                   FROM contas c
                   JOIN parcelas_contas p ON p.conta_id=c.id
@@ -79,9 +82,8 @@ public class ContaService {
                  WHERE u.usuario=? AND EXISTS(SELECT 1 FROM contas_pessoas_notificacao cp WHERE cp.conta_id=c.id) AND c.tipo='PAGAR' AND p.situacao='PENDENTE'
                    AND p.data_vencimento=CURRENT_DATE
                  ORDER BY c.descricao,p.numero
-                """, (r, n) -> new ContaVencendo(r.getString(1),r.getInt(2),r.getInt(3),r.getBigDecimal(4)), usuario);
-        String mensagem = contas.isEmpty() ? "Nenhuma conta pendente vence hoje."
-                : montarMensagemVencimentos(contas,0);
+                """, (r, n) -> new ContaNotificacao(r.getString(1),r.getInt(2),r.getInt(3),r.getBigDecimal(4)), usuario);
+        String mensagem = MensagemNotificacaoEnum.montarMensagemConta(contas, 0);
         return new NotificacaoWhatsapp(contatos, mensagem, contas.size());
     }
 
@@ -90,9 +92,9 @@ public class ContaService {
         int diasAntecedencia=diasConfigurados==null?0:diasConfigurados;
         List<String> topicos = jdbc.query("SELECT DISTINCT n.topico FROM pessoas_ntfy n JOIN pessoas p ON p.id=n.pessoa_id JOIN contas_pessoas_notificacao cp ON cp.pessoa_id=p.id JOIN contas c ON c.id=cp.conta_id JOIN parcelas_contas pc ON pc.conta_id=c.id JOIN usuario u ON u.id=c.usuario_cadastro WHERE u.usuario=? AND p.canal_preferencial='NTFY' AND c.tipo='PAGAR' AND pc.situacao='PENDENTE' AND pc.data_vencimento=CURRENT_DATE+u.dias_antecedencia",(r,n)->r.getString(1),usuario);
         if (topicos.isEmpty()) throw new IllegalArgumentException("Associe uma pessoa com ntfy às contas vencendo hoje");
-        List<ContaVencendo> contas = buscarContasVencendo(usuario,diasAntecedencia);
+        List<ContaNotificacao> contas = buscarContasVencendo(usuario,diasAntecedencia);
         if (contas.isEmpty()) return new ResultadoNotificacao(false, 0, "Nenhuma conta pendente foi encontrada para a data configurada.");
-        String mensagem = montarMensagemVencimentos(contas,diasAntecedencia);
+        String mensagem = MensagemNotificacaoEnum.montarMensagemConta(contas, diasAntecedencia);
         HttpRequest requisicao = HttpRequest.newBuilder(URI.create(ntfyBaseUrl + "/" + topicos.getFirst()))
                 .timeout(Duration.ofSeconds(20))
                 .header("Content-Type", "text/plain; charset=utf-8")
@@ -126,7 +128,7 @@ public class ContaService {
         }
     }
 
-    private List<ContaVencendo> buscarContasVencendo(String usuario,int diasAntecedencia) {
+    private List<ContaNotificacao> buscarContasVencendo(String usuario,int diasAntecedencia) {
         return jdbc.query("""
                 SELECT c.descricao,p.numero,c.qtd_parcelas,p.valor
                   FROM contas c
@@ -135,34 +137,20 @@ public class ContaService {
                  WHERE u.usuario=? AND c.tipo='PAGAR' AND p.situacao='PENDENTE'
                    AND p.data_vencimento=CURRENT_DATE + ?
                  ORDER BY c.descricao,p.numero
-                """, (r, n) -> new ContaVencendo(r.getString(1),r.getInt(2),r.getInt(3),r.getBigDecimal(4)), usuario,diasAntecedencia);
-    }
-
-    private String montarMensagemVencimentos(List<ContaVencendo> contas,int diasAntecedencia) {
-        String titulo=diasAntecedencia==0?"*Contas vencendo hoje*":"*Contas vencendo em "+diasAntecedencia+" dia(s)*";
-        StringBuilder mensagem = new StringBuilder(titulo+"\n\n");
-        BigDecimal valorTotal = BigDecimal.ZERO;
-        for (ContaVencendo conta : contas) {
-            mensagem.append("• ").append(conta.descricao());
-            if (conta.totalParcelas() > 1) mensagem.append(" — parcela ").append(conta.parcela()).append('/').append(conta.totalParcelas());
-            mensagem.append(" — R$ ").append(String.format(LOCALE_BRASIL, "%,.2f", conta.valor())).append('\n');
-            valorTotal = valorTotal.add(conta.valor());
-        }
-        mensagem.append("\nTotal de contas: ").append(contas.size());
-        mensagem.append("\nValor total: R$ ").append(String.format(LOCALE_BRASIL, "%,.2f", valorTotal));
-        return mensagem.toString();
+                """, (r, n) -> new ContaNotificacao(r.getString(1),r.getInt(2),r.getInt(3),r.getBigDecimal(4)), usuario,diasAntecedencia);
     }
 
     public Optional<ContaDetalhe> buscar(long id,String usuario) {
         if(!podeAcessarConta(id,usuario)) return Optional.empty();
         List<ContaDetalhe> contas = jdbc.query(
-                "SELECT c.id,c.descricao,c.valor_total,c.tipo,c.situacao,c.criado_em,c.baixada_em,c.pessoa_id,c.categoria_id,c.conta_bancaria_id,c.debito_automatico,c.recorrente,c.frequencia_recorrencia FROM contas c WHERE c.id=?",
+                "SELECT c.id,c.descricao,c.valor_total,c.tipo,c.situacao,c.criado_em,c.baixada_em,c.pessoa_id,c.categoria_id,c.subcategoria_id,c.conta_bancaria_id,c.debito_automatico,c.recorrente,c.frequencia_recorrencia FROM contas c WHERE c.id=?",
                 (r, n) -> new ContaDetalhe(r.getLong(1), r.getString(2), r.getBigDecimal(3),
                         TipoContaEnum.valueOf(r.getString(4)), SituacaoContaEnum.valueOf(r.getString(5)),
                         r.getObject(6, OffsetDateTime.class), r.getObject(7, OffsetDateTime.class), r.getObject(8, Long.class),
                         jdbc.query("SELECT pessoa_id FROM contas_pessoas_notificacao WHERE conta_id=? ORDER BY pessoa_id",(p,x)->p.getLong(1),id),
-                        r.getObject(9,Long.class),r.getObject(10,Long.class),r.getBoolean(11),r.getBoolean(12),
-                        r.getString(13)==null?null:FrequenciaRecorrenciaEnum.valueOf(r.getString(13)),
+                        r.getObject(9,Long.class),r.getObject(10,Long.class),r.getObject(11,Long.class),
+                        r.getBoolean(12),r.getBoolean(13),
+                        r.getString(14)==null?null:FrequenciaRecorrenciaEnum.valueOf(r.getString(14)),
                         jdbc.query(
                                 "SELECT numero, valor, data_vencimento, situacao, baixada_em, observacao_baixa FROM parcelas_contas WHERE conta_id=? ORDER BY numero",
                                 (p, x) -> new ParcelaContaDetalhe(p.getInt(1), p.getBigDecimal(2),
@@ -218,10 +206,11 @@ public class ContaService {
         Integer baixadas = jdbc.queryForObject("SELECT COUNT(*) FROM parcelas_contas p WHERE p.conta_id=? AND p.situacao<>'PENDENTE'",Integer.class,id);
         if (baixadas != null && baixadas > 0) throw new IllegalArgumentException("Contas com parcelas baixadas não podem ser alteradas");
         if (jdbc.update(
-                "UPDATE contas SET descricao=?,valor_total=?,qtd_parcelas=?,pessoa_id=?,tipo=?,situacao=?,categoria_id=?,conta_bancaria_id=?,debito_automatico=?,recorrente=?,frequencia_recorrencia=? WHERE id=?",
+                "UPDATE contas SET descricao=?,valor_total=?,qtd_parcelas=?,pessoa_id=?,tipo=?,situacao=?,categoria_id=?,subcategoria_id=?,conta_bancaria_id=?,debito_automatico=?,recorrente=?,frequencia_recorrencia=? WHERE id=?",
                 c.descricao().trim(), c.valorTotal(), c.parcelas().size(), primeiraPessoa(c.pessoaIds()), c.tipo().name(),
                 c.parcelas().size() > 1 ? SituacaoContaEnum.PARCELADA.name() : SituacaoContaEnum.ABERTA.name(),
-                c.categoriaId(),c.contaBancariaId(),c.debitoAutomatico(),c.recorrente(),c.recorrente()?c.frequenciaRecorrencia().name():null,id) == 0)
+                c.categoriaId(),c.subcategoriaId(),c.contaBancariaId(),c.debitoAutomatico(),c.recorrente(),
+                c.recorrente()?c.frequenciaRecorrencia().name():null,id) == 0)
             return false;
         salvarPessoas(id,c.pessoaIds());
         jdbc.update("DELETE FROM parcelas_contas WHERE conta_id=?", id);
@@ -247,7 +236,7 @@ public class ContaService {
         if (original.isEmpty())
             return null;
         Long novo = jdbc.queryForObject(
-                "INSERT INTO contas (descricao,valor_total,qtd_parcelas,usuario_cadastro,pessoa_id,tipo,situacao,categoria_id,conta_bancaria_id,debito_automatico) SELECT c.descricao,c.valor_total,c.qtd_parcelas,(SELECT id FROM usuario WHERE usuario=?),c.pessoa_id,c.tipo,CASE WHEN c.qtd_parcelas>1 THEN 'PARCELADA' ELSE 'ABERTA' END,c.categoria_id,c.conta_bancaria_id,c.debito_automatico FROM contas c WHERE c.id=? RETURNING id",
+                "INSERT INTO contas (descricao,valor_total,qtd_parcelas,usuario_cadastro,pessoa_id,tipo,situacao,categoria_id,subcategoria_id,conta_bancaria_id,debito_automatico) SELECT c.descricao,c.valor_total,c.qtd_parcelas,(SELECT id FROM usuario WHERE usuario=?),c.pessoa_id,c.tipo,CASE WHEN c.qtd_parcelas>1 THEN 'PARCELADA' ELSE 'ABERTA' END,c.categoria_id,c.subcategoria_id,c.conta_bancaria_id,c.debito_automatico FROM contas c WHERE c.id=? RETURNING id",
                 Long.class,usuario,id);
         jdbc.update(
                 "INSERT INTO parcelas_contas (conta_id,numero,valor,data_vencimento) SELECT ?,numero,valor,data_vencimento FROM parcelas_contas WHERE conta_id=?",
@@ -358,7 +347,9 @@ public class ContaService {
     }
 
         public record ContaResumo(long id, String descricao, BigDecimal valorTotal, TipoContaEnum tipo,
-            SituacaoContaEnum situacao, OffsetDateTime criadoEm, OffsetDateTime baixadaEm, boolean possuiBaixas, Long pessoaId, Long categoriaId, String categoria,LocalDate dataVencimento) {
+            SituacaoContaEnum situacao, OffsetDateTime criadoEm, OffsetDateTime baixadaEm,
+            boolean possuiBaixas, Long pessoaId, Long categoriaId, String categoria,
+            Long subcategoriaId, String subcategoria, LocalDate dataVencimento) {
     }
 
     public record AnexoResumo(long id, String nomeArquivo, String descricao, long tamanho) {
@@ -374,7 +365,8 @@ public class ContaService {
         public record ContaDetalhe(long id, String descricao, BigDecimal valorTotal, TipoContaEnum tipo,
             SituacaoContaEnum situacao, OffsetDateTime criadoEm, OffsetDateTime baixadaEm, Long pessoaId,
             List<Long> pessoaIds,
-            Long categoriaId, Long contaBancariaId,boolean debitoAutomatico,boolean recorrente,FrequenciaRecorrenciaEnum frequenciaRecorrencia,
+            Long categoriaId, Long subcategoriaId, Long contaBancariaId, boolean debitoAutomatico,
+            boolean recorrente, FrequenciaRecorrenciaEnum frequenciaRecorrencia,
             List<ParcelaContaDetalhe> parcelas, List<AnexoResumo> anexos) {
     }
 
@@ -385,6 +377,16 @@ public class ContaService {
         boolean visualizarTodos=visualizarCadastrosTodosUsuarios(usuario);
         Integer categorias=jdbc.queryForObject("SELECT COUNT(*) FROM categorias c JOIN usuario u ON u.id=c.usuario_id WHERE c.id=? AND (u.usuario=? OR ?)",Integer.class,c.categoriaId(),usuario,visualizarTodos);
         if(categorias==null||categorias==0) throw new IllegalArgumentException("Categoria não encontrada");
+        if(c.subcategoriaId()!=null) {
+            Integer subcategorias=jdbc.queryForObject("""
+                    SELECT COUNT(*)
+                      FROM subcategorias s
+                      JOIN usuario u ON u.id=s.usuario_id
+                     WHERE s.id=? AND s.categoria_id=? AND (u.usuario=? OR ?)
+                    """,Integer.class,c.subcategoriaId(),c.categoriaId(),usuario,visualizarTodos);
+            if(subcategorias==null||subcategorias==0)
+                throw new IllegalArgumentException("Subcategoria não encontrada ou não relacionada à categoria selecionada");
+        }
         if(c.contaBancariaId()!=null) {
             Integer quantidade=jdbc.queryForObject("SELECT COUNT(*) FROM contas_bancarias cb JOIN usuario u ON u.id=cb.usuario_id WHERE cb.id=? AND (u.usuario=? OR ?)",Integer.class,c.contaBancariaId(),usuario,visualizarTodos);
             if(quantidade==null||quantidade==0) throw new IllegalArgumentException("Conta bancária não encontrada");
@@ -392,9 +394,11 @@ public class ContaService {
     }
 
     private Long inserirConta(NovaContaRequest c,String usuario,List<ParcelaContaRequest> parcelas) {
-        return jdbc.queryForObject("INSERT INTO contas (descricao,valor_total,qtd_parcelas,usuario_cadastro,pessoa_id,tipo,situacao,categoria_id,conta_bancaria_id,debito_automatico,recorrente,frequencia_recorrencia) VALUES (?,?,?,(SELECT id FROM usuario WHERE usuario=?),?,?,?,?,?,?,?,?) RETURNING id",
+        return jdbc.queryForObject("INSERT INTO contas (descricao,valor_total,qtd_parcelas,usuario_cadastro,pessoa_id,tipo,situacao,categoria_id,subcategoria_id,conta_bancaria_id,debito_automatico,recorrente,frequencia_recorrencia) VALUES (?,?,?,(SELECT id FROM usuario WHERE usuario=?),?,?,?,?,?,?,?,?,?) RETURNING id",
                 Long.class,c.descricao().trim(),c.valorTotal(),parcelas.size(),usuario,primeiraPessoa(c.pessoaIds()),c.tipo().name(),
-                parcelas.size()>1?SituacaoContaEnum.PARCELADA.name():SituacaoContaEnum.ABERTA.name(),c.categoriaId(),c.contaBancariaId(),c.debitoAutomatico(),c.recorrente(),c.recorrente()?c.frequenciaRecorrencia().name():null);
+                parcelas.size()>1?SituacaoContaEnum.PARCELADA.name():SituacaoContaEnum.ABERTA.name(),
+                c.categoriaId(),c.subcategoriaId(),c.contaBancariaId(),c.debitoAutomatico(),c.recorrente(),
+                c.recorrente()?c.frequenciaRecorrencia().name():null);
     }
 
     private Long primeiraPessoa(List<Long> pessoaIds) {
@@ -454,7 +458,6 @@ public class ContaService {
 
     private record DestinoWhatsapp(String numero) {}
     private record ConfiguracaoNtfy(boolean ativa, String topico,int diasAntecedencia) {}
-    private record ContaVencendo(String descricao, int parcela, int totalParcelas, BigDecimal valor) {}
     public record NotificacaoWhatsapp(List<String> contatos, String mensagem, int quantidade) {}
     public record ResultadoNotificacao(boolean enviado, int quantidade, String mensagem) {}
 }

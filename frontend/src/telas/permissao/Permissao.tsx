@@ -19,6 +19,10 @@ const rotulos: Record<Funcionalidade, string> = {
   CADASTRAR_CATEGORIAS: "Cadastrar",
   ALTERAR_CATEGORIAS: "Alterar",
   EXCLUIR_CATEGORIAS: "Excluir",
+  CONSULTAR_SUBCATEGORIAS: "Consultar",
+  CADASTRAR_SUBCATEGORIAS: "Cadastrar",
+  ALTERAR_SUBCATEGORIAS: "Alterar",
+  EXCLUIR_SUBCATEGORIAS: "Excluir",
   CONSULTAR_USUARIOS: "Consultar",
   CADASTRAR_USUARIOS: "Cadastrar",
   ALTERAR_USUARIOS: "Alterar",
@@ -54,6 +58,10 @@ const grupos: { titulo: string; funcoes: Funcionalidade[] }[] = [
   {
     titulo: "Categorias",
     funcoes: ["CONSULTAR_CATEGORIAS", "CADASTRAR_CATEGORIAS", "ALTERAR_CATEGORIAS", "EXCLUIR_CATEGORIAS"],
+  },
+  {
+    titulo: "Subcategorias",
+    funcoes: ["CONSULTAR_SUBCATEGORIAS", "CADASTRAR_SUBCATEGORIAS", "ALTERAR_SUBCATEGORIAS", "EXCLUIR_SUBCATEGORIAS"],
   },
   {
     titulo: "Usuários",

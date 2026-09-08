@@ -2,6 +2,10 @@
 
 Aplicação web para controle de contas a pagar e receber. O sistema oferece parcelamento, baixas, anexos, recorrências, contas bancárias, relatórios, compromissos, usuários, papéis e notificações via ntfy.
 
+## Acesso público
+
+O FlowFinance está disponível publicamente em [http://flowfinance.ddns.net/](http://flowfinance.ddns.net/).
+
 ## Tecnologias
 
 - Backend: Java 25, Spring Boot, Spring JDBC, Flyway e PostgreSQL.
@@ -81,10 +85,24 @@ O backend segue a separação `controller` → `service` → PostgreSQL via `Jdb
 - Lançamentos recorrentes diários, semanais, mensais ou anuais.
 - Contas bancárias vinculadas a um titular e débito automático.
 - Relatório mensal por vencimento, situação e banco de débito automático.
-- Agenda e relatório de compromissos por período.
-- Pessoas e canais de notificação WhatsApp/ntfy.
-- Usuários, papéis e permissões por funcionalidade.
+- Categorias e subcategorias com CRUD completo e vínculo de cada subcategoria à sua categoria.
+- Contas, compromissos, relatórios e demais visualizações com informações de categoria e subcategoria.
+- Agenda e relatório de compromissos por período, incluindo data e horário, hora da notificação e situação.
+- Pessoas e canais de notificação WhatsApp/ntfy, com geração automática de tópico ntfy.
+- Sugestão automática da pessoa vinculada ao usuário autenticado ao cadastrar contas e compromissos; a seleção continua editável.
+- Mensagens de notificação de contas e compromissos geradas em um componente centralizado.
+- Usuários, papéis e permissões por funcionalidade, incluindo quatro permissões CRUD para subcategorias; o vínculo entre usuário e pessoa usa as permissões já existentes de usuários.
 - Resumo financeiro e notificações de vencimento.
+
+### Categorias e subcategorias
+
+O cadastro de subcategorias permite incluir, consultar, editar e excluir registros. Cada subcategoria deve ser relacionada a uma categoria por meio da caixa de seleção exibida no formulário. Contas e compromissos podem usar esse detalhamento, que também aparece nas respectivas listagens, calendários e relatórios.
+
+### Pessoas e notificações
+
+Um usuário pode ser vinculado a uma pessoa. Ao abrir o cadastro de uma conta ou compromisso, essa pessoa é sugerida na lista de destinatários de notificação, sem impedir que seja removida ou que outras pessoas sejam selecionadas. No cadastro da pessoa, o botão **Gerar tópico** preenche um identificador ntfy aleatório. A composição das mensagens de contas e compromissos fica centralizada para manter o conteúdo consistente entre os envios.
+
+O acesso aos novos cadastros e vínculos segue o modelo de papéis e permissões do sistema. Conceda as funcionalidades de subcategoria aos papéis que devem utilizá-las; a configuração da pessoa vinculada é protegida pelas permissões de cadastro e alteração de usuários.
 
 ### Recorrências
 

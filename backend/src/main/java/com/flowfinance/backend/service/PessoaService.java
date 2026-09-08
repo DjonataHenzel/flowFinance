@@ -13,6 +13,15 @@ public class PessoaService {
     public PessoaService(JdbcTemplate jdbc) { this.jdbc = jdbc; }
 
     public List<PessoaResumo> listar() { return jdbc.query("SELECT id,nome,cpf,cidade,uf,canal_preferencial FROM pessoas ORDER BY nome",(r,n)->new PessoaResumo(r.getLong(1),r.getString(2),r.getString(3),r.getString(4),r.getString(5),r.getString(6))); }
+    public Optional<PessoaResumo> buscarSugestaoNotificacao(String usuario) {
+        return jdbc.query("""
+                SELECT p.id,p.nome,p.cpf,p.cidade,p.uf,p.canal_preferencial
+                  FROM usuario u
+                  JOIN pessoas p ON p.id=u.pessoa_id
+                 WHERE u.usuario=? AND u.ativo=TRUE
+                """,(r,n)->new PessoaResumo(r.getLong(1),r.getString(2),r.getString(3),r.getString(4),r.getString(5),r.getString(6)),usuario)
+                .stream().findFirst();
+    }
     public Optional<PessoaDetalhe> buscar(long id) { List<PessoaDetalhe> itens=jdbc.query("SELECT id,nome,cpf,cep,logradouro,numero,complemento,bairro,cidade,uf,canal_preferencial,criado_em FROM pessoas WHERE id=?",(r,n)->new PessoaDetalhe(r.getLong(1),r.getString(2),r.getString(3),r.getString(4),r.getString(5),r.getString(6),r.getString(7),r.getString(8),r.getString(9),r.getString(10),r.getString(11),r.getObject(12,OffsetDateTime.class),jdbc.query("SELECT numero FROM pessoas_whatsapp WHERE pessoa_id=? ORDER BY id",(x,y)->x.getString(1),id),jdbc.query("SELECT topico FROM pessoas_ntfy WHERE pessoa_id=? ORDER BY id",(x,y)->x.getString(1),id)),id); return itens.stream().findFirst(); }
 
     @Transactional public long cadastrar(PessoaRequest p) { validar(p); Long id=jdbc.queryForObject("INSERT INTO pessoas(nome,cpf,cep,logradouro,numero,complemento,bairro,cidade,uf,canal_preferencial) VALUES(?,?,?,?,?,?,?,?,?,?) RETURNING id",Long.class,dados(p)); salvarCanais(id,p); return id; }

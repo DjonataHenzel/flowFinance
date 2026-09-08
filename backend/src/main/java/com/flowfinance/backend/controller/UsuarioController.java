@@ -26,15 +26,21 @@ public class UsuarioController {
         return service.listar();
     }
 
+    @GetMapping("/pessoas-vinculaveis")
+    public List<UsuarioService.PessoaVinculavel> listarPessoasVinculaveis(
+            @RequestParam(required = false) Long usuarioId) {
+        return service.listarPessoasVinculaveis(usuarioId);
+    }
+
     @PostMapping
     public ResponseEntity<Map<String, Object>> cadastrar(@Valid @RequestBody NovoUsuarioRequest request) {
-        service.cadastrar(request.usuario(), request.senha(),request.papelId(), request.notificarContaVencendoWhatsapp(), request.contatosWhatsapp(), request.notificarContaVencendoNtfy(), request.topicoNtfy(),request.horaNotificacao(),request.diasAntecedencia(),request.visualizarCadastrosTodosUsuarios());
+        service.cadastrar(request.usuario(), request.senha(),request.papelId(), request.pessoaId(), request.notificarContaVencendoWhatsapp(), request.contatosWhatsapp(), request.notificarContaVencendoNtfy(), request.topicoNtfy(),request.horaNotificacao(),request.diasAntecedencia(),request.visualizarCadastrosTodosUsuarios());
         return ResponseEntity.status(201).body(Map.of("message", "Usuário cadastrado com sucesso"));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<Map<String, Object>> alterar(@PathVariable long id, @Valid @RequestBody AlterarUsuarioRequest request) {
-        if (!service.alterar(id, request.usuario(), request.senha(), request.ativo(),request.papelId(), request.notificarContaVencendoWhatsapp(), request.contatosWhatsapp(), request.notificarContaVencendoNtfy(), request.topicoNtfy(),request.horaNotificacao(),request.diasAntecedencia(),request.visualizarCadastrosTodosUsuarios())) return ResponseEntity.notFound().build();
+        if (!service.alterar(id, request.usuario(), request.senha(), request.ativo(),request.papelId(), request.pessoaId(), request.notificarContaVencendoWhatsapp(), request.contatosWhatsapp(), request.notificarContaVencendoNtfy(), request.topicoNtfy(),request.horaNotificacao(),request.diasAntecedencia(),request.visualizarCadastrosTodosUsuarios())) return ResponseEntity.notFound().build();
         return ResponseEntity.ok(Map.of("message", "Usuário alterado com sucesso"));
     }
 
@@ -44,13 +50,13 @@ public class UsuarioController {
     }
 
     public record NovoUsuarioRequest(@NotBlank @Size(max = 100) String usuario,
-            @NotBlank @Size(min = 4, max = 72) String senha,@NotNull Long papelId,
+            @NotBlank @Size(min = 4, max = 72) String senha,@NotNull Long papelId, Long pessoaId,
             boolean notificarContaVencendoWhatsapp, List<String> contatosWhatsapp,
             boolean notificarContaVencendoNtfy, String topicoNtfy, LocalTime horaNotificacao, Integer diasAntecedencia,
             boolean visualizarCadastrosTodosUsuarios) {
     }
     public record AlterarUsuarioRequest(@NotBlank @Size(max = 100) String usuario,
-            @Size(min = 4, max = 72) String senha, boolean ativo,@NotNull Long papelId,
+            @Size(min = 4, max = 72) String senha, boolean ativo,@NotNull Long papelId, Long pessoaId,
             boolean notificarContaVencendoWhatsapp, List<String> contatosWhatsapp,
             boolean notificarContaVencendoNtfy, String topicoNtfy, LocalTime horaNotificacao, Integer diasAntecedencia,
             boolean visualizarCadastrosTodosUsuarios) {}

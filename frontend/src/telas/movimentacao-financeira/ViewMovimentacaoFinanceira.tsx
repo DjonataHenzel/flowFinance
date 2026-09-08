@@ -263,6 +263,7 @@ export default function ViewMovimentacaoFinanceira({
               <tr>
                 <th>Descrição</th>
                 <th>Categoria</th>
+                <th>Subcategoria</th>
                 <th>Tipo</th>
                 <th>Valor</th>
                 <th>Situação</th>
@@ -284,6 +285,7 @@ export default function ViewMovimentacaoFinanceira({
                 >
                   <td>{c.descricao}</td>
                   <td>{c.categoria ?? "Sem categoria"}</td>
+                  <td>{c.subcategoria ?? "Sem subcategoria"}</td>
                   <td
                     className={
                       c.tipo === "RECEBER" ? "tipo-receber" : "tipo-pagar"
@@ -309,7 +311,7 @@ export default function ViewMovimentacaoFinanceira({
               ))}
               {!contasFiltradas.length && (
                 <tr>
-                  <td colSpan={7} className="lista-vazia">
+                  <td colSpan={8} className="lista-vazia">
                     Nenhuma conta encontrada.
                   </td>
                 </tr>

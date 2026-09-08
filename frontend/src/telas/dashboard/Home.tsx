@@ -12,6 +12,7 @@ import ViewRelatorioContas from "../movimentacao-financeira/ViewRelatorioContas"
 import ViewRelatorioCompromissos from "../compromisso/ViewRelatorioCompromissos";
 import ViewContasBancarias from "../conta-bancaria/ViewContasBancarias";
 import ViewCategorias from "../categoria/ViewCategorias";
+import ViewSubCategorias from "../subcategoria/ViewSubCategorias";
 
 type Tela =
   | "inicio"
@@ -27,7 +28,8 @@ type Tela =
   | "relatorioContas"
   | "relatorioCompromissos"
   | "contaBancaria"
-  | "categoria";
+  | "categoria"
+  | "subcategoria";
 
 export default function Home({
   usuario,
@@ -54,7 +56,8 @@ export default function Home({
     tem("GERENCIAR_PERMISSOES") ||
     tem("CONSULTAR_PESSOAS") ||
     tem("CONSULTAR_CONTAS_BANCARIAS") ||
-    tem("CONSULTAR_CATEGORIAS");
+    tem("CONSULTAR_CATEGORIAS") ||
+    tem("CONSULTAR_SUBCATEGORIAS");
   function abrir(t: Tela) {
     setTela(t);
     setMenu(null);
@@ -141,17 +144,24 @@ export default function Home({
                   {tem("CONSULTAR_PESSOAS") && (
                     <button onClick={() => abrir("pessoa")}>Pessoas</button>
                   )}
+                  {tem("GERENCIAR_PERMISSOES") && (
+                    <button onClick={() => abrir("permissao")}>
+                      Permissão
+                    </button>
+                  )}
                   {tem("CONSULTAR_CONTAS_BANCARIAS") && (
                     <button onClick={() => abrir("contaBancaria")}>
                       Contas bancárias
                     </button>
                   )}
                   {tem("CONSULTAR_CATEGORIAS") && (
-                    <button onClick={() => abrir("categoria")}>Categorias</button>
+                    <button onClick={() => abrir("categoria")}>
+                      Categorias
+                    </button>
                   )}
-                  {tem("GERENCIAR_PERMISSOES") && (
-                    <button onClick={() => abrir("permissao")}>
-                      Permissão
+                  {tem("CONSULTAR_SUBCATEGORIAS") && (
+                    <button onClick={() => abrir("subcategoria")}>
+                      Subcategorias
                     </button>
                   )}
                 </div>
@@ -225,6 +235,9 @@ export default function Home({
         )}
         {tela === "categoria" && tem("CONSULTAR_CATEGORIAS") && (
           <ViewCategorias funcionalidades={funcionalidades} />
+        )}
+        {tela === "subcategoria" && tem("CONSULTAR_SUBCATEGORIAS") && (
+          <ViewSubCategorias funcionalidades={funcionalidades} />
         )}
         {tela === "compromisso" && tem("CONSULTAR_COMPROMISSOS") && (
           <ViewCompromissos />
