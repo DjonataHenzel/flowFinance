@@ -18,7 +18,8 @@ export default function ViewRelatorioCompromissos(){
       <button className="botao-adicionar" disabled={carregando}>{carregando?"Gerando...":"Gerar relatório"}</button>
     </form>
     {erro&&<p className="mensagem-erro">{erro}</p>}
-    {dados&&<>{ordem.map(s=><Grupo key={s} titulo={rotulos[s]} itens={dados.filter(x=>x.situacao===s)}/>)}<div className="totalizador-relatorio"><span>Total de compromissos <strong>{dados.length}</strong></span></div></>}
+    {dados&&dados.length>0&&<>{ordem.map(s=>{const itens=dados.filter(x=>x.situacao===s);return itens.length?<Grupo key={s} titulo={rotulos[s]} itens={itens}/>:null})}<div className="totalizador-relatorio"><span>Total de compromissos <strong>{dados.length}</strong></span></div></>}
+    {dados&&dados.length===0&&<p className="lista-vazia mensagem-relatorio-vazio">Nenhum compromisso encontrado no período.</p>}
   </section>
 }
 

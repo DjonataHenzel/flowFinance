@@ -3,7 +3,7 @@ import {
   alterarConta,
   buscarConta,
   cadastrarConta,
-  visualizarAnexo,
+  baixarAnexoConta,
   listarPessoas,
   buscarPessoaSugerida,
   listarContasBancarias,
@@ -36,7 +36,7 @@ export default function MovimentacaoFinanceira({
   const [descricao, setDescricao] = useState(""),
     [valor, setValor] = useState(""),
     [quantidade, setQuantidade] = useState("1"),
-    [vencimento, setVencimento] = useState("");
+    [vencimento, setVencimento] = useState(proximoPrimeiroVencimento);
   const [parcelas, setParcelas] = useState<ParcelaConta[]>([]),
     [anexos, setAnexos] = useState<AnexoNovo[]>([]),
     [existentes, setExistentes] = useState<AnexoConta[]>([]);
@@ -60,7 +60,7 @@ export default function MovimentacaoFinanceira({
     [anexosAbertos, setAnexosAbertos] = useState(false);
   const somaParcelas = parcelas.reduce((s, p) => s + Number(p.valor), 0);
   const parcelasValidas =
-    Math.round(somaParcelas * 100) === Math.round(moedaParaNumero(valor) * 100);
+    recorrente || Math.round(somaParcelas * 100) === Math.round(moedaParaNumero(valor) * 100);
 
   useEffect(() => {
     const fonte = contaId ?? origemId;
@@ -86,7 +86,7 @@ export default function MovimentacaoFinanceira({
     setDescricao("");
     setValor("");
     setQuantidade("1");
-    setVencimento("");
+    setVencimento(proximoPrimeiroVencimento());
     setParcelas([]);
     setAnexos([]);
     setExistentes([]);
@@ -101,7 +101,7 @@ export default function MovimentacaoFinanceira({
       buscarConta(fonte)
         .then((c) => {
           setDescricao(c.descricao);
-          setValor(formatarMoeda(c.valorTotal));
+          setValor(formatarMoeda(c.recorrente ? (c.parcelas[0]?.valor ?? c.valorTotal) : c.valorTotal));
           setTipoAtual(c.tipo);
           setPessoaIds(c.pessoaIds ?? []);
           setCategoriaId(c.categoriaId ?? null);
@@ -143,13 +143,27 @@ export default function MovimentacaoFinanceira({
       setErro("Selecione uma conta bancária para o débito automático.");
       return;
     }
-    if (
+      if (
       [
         ...anexos.map((a) => a.descricao),
         ...existentes.map((a) => a.descricao),
       ].some((d) => !d.trim())
     ) {
       setErro("Informe a descrição de todos os anexos.");
+      return;
+    }
+    if (recorrente) {
+      const recorrencias = parcelas.length
+        ? parcelas
+        : criarParcelasRecorrentes(
+            moedaParaNumero(valor),
+            vencimento,
+            frequenciaRecorrencia,
+          );
+      setParcelas(recorrencias);
+      setQuantidade(String(recorrencias.length));
+      setParcelasAbertas(true);
+      recorrencias.length > 1 ? setModal(true) : salvar(recorrencias);
       return;
     }
     if (parcelas.length > 1 && parcelas.length === Number(quantidade)) {
@@ -174,7 +188,14 @@ export default function MovimentacaoFinanceira({
     try {
       const dados = {
         descricao,
-        valorTotal: moedaParaNumero(valor),
+        valorTotal: recorrente
+          ? Math.round(
+              p.reduce(
+                (total, parcela) => total + Number(parcela.valor),
+                0,
+              ) * 100,
+            ) / 100
+          : moedaParaNumero(valor),
         tipo: tipoAtual,
         pessoaIds,
         categoriaId: categoriaId!,
@@ -201,6 +222,21 @@ export default function MovimentacaoFinanceira({
     if (Number(q) > 0 && valor && vencimento)
       setParcelas(criarParcelas(moedaParaNumero(valor), Number(q), vencimento));
   }
+  function atualizarRecorrencias(
+    valorAtual = valor,
+    dataAtual = vencimento,
+    frequencia = frequenciaRecorrencia,
+  ) {
+    if (!valorAtual || !dataAtual) return;
+    const novas = criarParcelasRecorrentes(
+      moedaParaNumero(valorAtual),
+      dataAtual,
+      frequencia,
+    );
+    setParcelas(novas);
+    setQuantidade(String(novas.length));
+    setParcelasAbertas(novas.length > 1);
+  }
   function selecionarSubcategoria(valor: string) {
     setSubcategoriaId(valor ? Number(valor) : null);
     const subcategoria = subcategorias.find(
@@ -222,12 +258,17 @@ export default function MovimentacaoFinanceira({
   return (
     <>
       <form className="painel formulario-movimentacao" onSubmit={preparar}>
-        <h1>
-          {contaId
-            ? "Alterar conta"
-            : origemId
-              ? "Duplicar conta"
-              : `Conta a ${tipoAtual === "PAGAR" ? "pagar" : "receber"}`}
+        <h1
+          className={`titulo-formulario-conta titulo-conta-${tipoAtual.toLowerCase()}`}
+        >
+          <IconeTipoConta tipo={tipoAtual} />
+          <span>
+            {contaId
+              ? "Alterar conta"
+              : origemId
+                ? "Duplicar conta"
+                : `Conta a ${tipoAtual === "PAGAR" ? "pagar" : "receber"}`}
+          </span>
         </h1>
         <label className="rotulo-campo">Descrição *</label>
         <input
@@ -236,81 +277,68 @@ export default function MovimentacaoFinanceira({
           onChange={(e) => setDescricao(e.target.value)}
           required
         />
-        <div className="grade-baixa">
-          <label className="rotulo-campo">
-            Categoria *
+        <div className="grade-configuracao-conta">
+          <label className="rotulo-campo campo-conta-bancaria">
+            Conta bancária
             <select
               className="campo-formulario"
-              value={categoriaId ?? ""}
-              onChange={(e) => {
-                setCategoriaId(e.target.value ? Number(e.target.value) : null);
-                setSubcategoriaId(null);
-              }}
-              required
+              value={contaBancariaId ?? ""}
+              onChange={(e) =>
+                setContaBancariaId(
+                  e.target.value ? Number(e.target.value) : null,
+                )
+              }
+              required={debitoAutomatico}
             >
-              <option value="">Selecione uma categoria</option>
-              {categorias.map((c) => (
+              <option value="">Sem conta bancária vinculada</option>
+              {contasBancarias.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.nome}
+                  {rotuloBanco(c.banco)} · Ag. {c.agencia} · Conta {c.numeroConta}
                 </option>
               ))}
             </select>
           </label>
-          <label className="rotulo-campo">
-            Subcategoria
+          <div className="opcoes-lancamento opcoes-lancamento-em-linha">
+            <label className="opcao-checkbox">
+              <input
+                type="checkbox"
+                checked={debitoAutomatico}
+                onChange={(e) => setDebitoAutomatico(e.target.checked)}
+              />
+              Débito automático
+            </label>
+            <label className="opcao-checkbox">
+              <input
+                type="checkbox"
+                checked={recorrente}
+                disabled={Boolean(contaId)}
+                onChange={(e) => {
+                  const ativo = e.target.checked;
+                  setRecorrente(ativo);
+                  if (ativo) atualizarRecorrencias();
+                  else {
+                    setQuantidade("1");
+                    setParcelas(
+                      criarParcelas(moedaParaNumero(valor), 1, vencimento),
+                    );
+                  }
+                }}
+              />
+              Recorrente
+            </label>
+          </div>
+          <label className="rotulo-campo campo-tipo-conta">
+            Tipo *
             <select
               className="campo-formulario"
-              value={subcategoriaId ?? ""}
-              onChange={(e) => selecionarSubcategoria(e.target.value)}
+              value={tipoAtual}
+              onChange={(e) =>
+                setTipoAtual(e.target.value as TipoContaEnum)
+              }
             >
-              <option value="">Sem subcategoria</option>
-              {subcategorias.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.nome}
-                </option>
-              ))}
+              <option value="RECEBER">Receber</option>
+              <option value="PAGAR">Pagar</option>
             </select>
-          </label>
-        </div>
-        {!categorias.length && (
-          <small className="ajuda-campo">
-            Cadastre uma categoria em Ferramentas → Categorias antes de lançar a
-            movimentação.
-          </small>
-        )}
-        <label className="rotulo-campo">Conta bancária</label>
-        <select
-          className="campo-formulario"
-          value={contaBancariaId ?? ""}
-          onChange={(e) =>
-            setContaBancariaId(e.target.value ? Number(e.target.value) : null)
-          }
-          required={debitoAutomatico}
-        >
-          <option value="">Sem conta bancária vinculada</option>
-          {contasBancarias.map((c) => (
-            <option key={c.id} value={c.id}>
-              {rotuloBanco(c.banco)} · Ag. {c.agencia} · Conta {c.numeroConta}
-            </option>
-          ))}
-        </select>
-        <div className="opcoes-lancamento">
-          <label className="opcao-checkbox">
-            <input
-              type="checkbox"
-              checked={debitoAutomatico}
-              onChange={(e) => setDebitoAutomatico(e.target.checked)}
-            />{" "}
-            Débito automático
-          </label>
-          <label className="opcao-checkbox">
-            <input
-              type="checkbox"
-              checked={recorrente}
-              disabled={Boolean(contaId)}
-              onChange={(e) => setRecorrente(e.target.checked)}
-            />{" "}
-            Recorrente
           </label>
         </div>
         {debitoAutomatico && !contasBancarias.length && (
@@ -323,18 +351,17 @@ export default function MovimentacaoFinanceira({
           <section className="secao-recorrencia">
             <h2>Recorrência</h2>
             <p className="subtitulo">
-              Serão criadas novas contas até o final do ano do primeiro
-              vencimento.
+              As ocorrências serão parcelas desta mesma conta até dezembro.
             </p>
             <label className="rotulo-campo">Frequência *</label>
             <select
               className="campo-formulario"
               value={frequenciaRecorrencia}
-              onChange={(e) =>
-                setFrequenciaRecorrencia(
-                  e.target.value as FrequenciaRecorrencia,
-                )
-              }
+              onChange={(e) => {
+                const frequencia = e.target.value as FrequenciaRecorrencia;
+                setFrequenciaRecorrencia(frequencia);
+                atualizarRecorrencias(valor, vencimento, frequencia);
+              }}
             >
               <option value="DIARIA">Diariamente</option>
               <option value="SEMANAL">Semanalmente</option>
@@ -343,94 +370,64 @@ export default function MovimentacaoFinanceira({
             </select>
           </section>
         )}
-        <label className="rotulo-campo">Tipo *</label>
-        <select
-          className="campo-formulario"
-          value={tipoAtual}
-          onChange={(e) => setTipoAtual(e.target.value as TipoContaEnum)}
-        >
-          <option value="RECEBER">Receber</option>
-          <option value="PAGAR">Pagar</option>
-        </select>
-        <div className="rotulo-campo">
-          Pessoas para notificações
-          <span className="lista-selecao-pessoas">
-            {pessoas.map((p) => (
-              <span className="item-selecao-pessoa" key={p.id}>
-                <input
-                  type="checkbox"
-                  checked={pessoaIds.includes(p.id)}
-                  onChange={(e) =>
-                    setPessoaIds((atuais) =>
-                      e.target.checked
-                        ? [...atuais, p.id]
-                        : atuais.filter((id) => id !== p.id),
-                    )
-                  }
-                />
-                <span>{p.nome}</span>
-              </span>
-            ))}
-            {!pessoas.length && (
-              <span className="lista-pessoas-vazia">
-                Nenhuma pessoa cadastrada.
-              </span>
-            )}
-          </span>
+        <div className="grade-valores-conta">
+          <label className="rotulo-campo">Valor total *</label>
+          <input
+            className="campo-formulario"
+            type="text"
+            inputMode="numeric"
+            value={valor}
+            placeholder="R$ 0,00"
+            onChange={(e) => {
+              const v = mascararMoeda(e.target.value);
+              setValor(v);
+              if (recorrente) atualizarRecorrencias(v, vencimento);
+              else if (Number(quantidade) > 1 && vencimento)
+                setParcelas(
+                  criarParcelas(
+                    moedaParaNumero(v),
+                    Number(quantidade),
+                    vencimento,
+                  ),
+                );
+            }}
+            required
+          />
+          <label className="rotulo-campo">Parcelas</label>
+          <input
+            className="campo-formulario"
+            type="number"
+            min="1"
+            value={quantidade}
+            disabled={recorrente}
+            onChange={(e) => mudarQuantidade(e.target.value)}
+          />
+          <label className="rotulo-campo">Primeiro vencimento *</label>
+          <input
+            className="campo-formulario"
+            type="date"
+            value={vencimento}
+            onChange={(e) => {
+              setVencimento(e.target.value);
+              if (recorrente) atualizarRecorrencias(valor, e.target.value);
+              else if (Number(quantidade) > 1 && valor)
+                setParcelas(
+                  criarParcelas(
+                    moedaParaNumero(valor),
+                    Number(quantidade),
+                    e.target.value,
+                  ),
+                );
+              else if (parcelas.length)
+                setParcelas((p) =>
+                  p.map((x, i) =>
+                    i === 0 ? { ...x, dataVencimento: e.target.value } : x,
+                  ),
+                );
+            }}
+            required
+          />
         </div>
-        <label className="rotulo-campo">Valor total *</label>
-        <input
-          className="campo-formulario"
-          type="text"
-          inputMode="numeric"
-          value={valor}
-          placeholder="R$ 0,00"
-          onChange={(e) => {
-            const v = mascararMoeda(e.target.value);
-            setValor(v);
-            if (Number(quantidade) > 1 && vencimento)
-              setParcelas(
-                criarParcelas(
-                  moedaParaNumero(v),
-                  Number(quantidade),
-                  vencimento,
-                ),
-              );
-          }}
-          required
-        />
-        <label className="rotulo-campo">Parcelas</label>
-        <input
-          className="campo-formulario"
-          type="number"
-          min="1"
-          value={quantidade}
-          onChange={(e) => mudarQuantidade(e.target.value)}
-        />
-        <label className="rotulo-campo">Primeiro vencimento *</label>
-        <input
-          className="campo-formulario"
-          type="date"
-          value={vencimento}
-          onChange={(e) => {
-            setVencimento(e.target.value);
-            if (Number(quantidade) > 1 && valor)
-              setParcelas(
-                criarParcelas(
-                  moedaParaNumero(valor),
-                  Number(quantidade),
-                  e.target.value,
-                ),
-              );
-            else if (parcelas.length)
-              setParcelas((p) =>
-                p.map((x, i) =>
-                  i === 0 ? { ...x, dataVencimento: e.target.value } : x,
-                ),
-              );
-          }}
-          required
-        />
         {parcelas.length > 1 && (
           <section className="secao-expansivel">
             <button
@@ -457,6 +454,78 @@ export default function MovimentacaoFinanceira({
               </div>
             )}
           </section>
+        )}
+        <div className="grade-notificacao-conta">
+          <div className="rotulo-campo">
+            Pessoas para notificações
+            <span className="lista-selecao-pessoas">
+              {pessoas.map((p) => (
+                <span className="item-selecao-pessoa" key={p.id}>
+                  <input
+                    type="checkbox"
+                    checked={pessoaIds.includes(p.id)}
+                    onChange={(e) =>
+                      setPessoaIds((atuais) =>
+                        e.target.checked
+                          ? [...atuais, p.id]
+                          : atuais.filter((id) => id !== p.id),
+                      )
+                    }
+                  />
+                  <span>{p.nome}</span>
+                </span>
+              ))}
+              {!pessoas.length && (
+                <span className="lista-pessoas-vazia">
+                  Nenhuma pessoa cadastrada.
+                </span>
+              )}
+            </span>
+          </div>
+          <div className="grade-classificacao-conta">
+            <label className="rotulo-campo">
+              Categoria *
+              <select
+                className="campo-formulario"
+                value={categoriaId ?? ""}
+                onChange={(e) => {
+                  setCategoriaId(
+                    e.target.value ? Number(e.target.value) : null,
+                  );
+                  setSubcategoriaId(null);
+                }}
+                required
+              >
+                <option value="">Selecione uma categoria</option>
+                {categorias.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.nome}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="rotulo-campo">
+              Subcategoria
+              <select
+                className="campo-formulario"
+                value={subcategoriaId ?? ""}
+                onChange={(e) => selecionarSubcategoria(e.target.value)}
+              >
+                <option value="">Sem subcategoria</option>
+                {subcategorias.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.nome}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        </div>
+        {!categorias.length && (
+          <small className="ajuda-campo">
+            Cadastre uma categoria em Ferramentas → Categorias antes de lançar a
+            movimentação.
+          </small>
         )}
         <section className="secao-expansivel">
           <button
@@ -488,10 +557,10 @@ export default function MovimentacaoFinanceira({
                 {existentes.map((a, i) => (
                   <li key={a.id}>
                     <div className="dados-anexo">
-                      <strong>{a.nomeArquivo}</strong>
-                      <small>
-                        {formatarTamanho(a.tamanho)} · Anexo registrado
-                      </small>
+                      <div className="identificacao-anexo" title={a.nomeArquivo}>
+                        <strong>{a.nomeArquivo}</strong>
+                        <small>{formatarTamanho(a.tamanho)} · Registrado</small>
+                      </div>
                       <input
                         className="campo-formulario descricao-anexo"
                         placeholder="Descrição do anexo *"
@@ -508,17 +577,17 @@ export default function MovimentacaoFinanceira({
                     <div className="acoes-anexo">
                       <button
                         type="button"
-                        aria-label={`Visualizar ${a.nomeArquivo}`}
-                        title="Visualizar"
+                        aria-label={`Baixar ${a.nomeArquivo}`}
+                        title="Baixar"
                         onClick={() => {
                           const fonte = contaId ?? origemId;
                           if (fonte)
-                            visualizarAnexo(fonte, a.id).catch((e) =>
+                            baixarAnexoConta(fonte, a).catch((e) =>
                               setErro(e.message),
                             );
                         }}
                       >
-                        <IconeVisualizar />
+                        <IconeBaixar />
                       </button>
                       <button
                         className="remover-anexo"
@@ -537,10 +606,10 @@ export default function MovimentacaoFinanceira({
                 {anexos.map((a, i) => (
                   <li key={`${a.arquivo.name}-${a.arquivo.lastModified}-${i}`}>
                     <div className="dados-anexo">
-                      <strong>{a.arquivo.name}</strong>
-                      <small>
-                        {formatarTamanho(a.arquivo.size)} · Novo anexo
-                      </small>
+                      <div className="identificacao-anexo" title={a.arquivo.name}>
+                        <strong>{a.arquivo.name}</strong>
+                        <small>{formatarTamanho(a.arquivo.size)} · Novo</small>
+                      </div>
                       <input
                         className="campo-formulario descricao-anexo"
                         placeholder="Descrição do anexo *"
@@ -557,11 +626,11 @@ export default function MovimentacaoFinanceira({
                     <div className="acoes-anexo">
                       <button
                         type="button"
-                        aria-label={`Visualizar ${a.arquivo.name}`}
-                        title="Visualizar"
-                        onClick={() => visualizarArquivoLocal(a.arquivo)}
+                        aria-label={`Baixar ${a.arquivo.name}`}
+                        title="Baixar"
+                        onClick={() => baixarArquivoLocal(a.arquivo)}
                       >
-                        <IconeVisualizar />
+                        <IconeBaixar />
                       </button>
                       <button
                         className="remover-anexo"
@@ -602,6 +671,7 @@ export default function MovimentacaoFinanceira({
         <Modal
           parcelas={parcelas}
           total={moedaParaNumero(valor)}
+          validarTotal={!recorrente}
           erro={erro}
           salvando={salvando}
           alterar={setParcelas}
@@ -705,6 +775,7 @@ function TabelaParcelas({
 function Modal({
   parcelas,
   total,
+  validarTotal,
   erro,
   salvando,
   alterar,
@@ -713,6 +784,7 @@ function Modal({
 }: {
   parcelas: ParcelaConta[];
   total: number;
+  validarTotal: boolean;
   erro: string;
   salvando: boolean;
   alterar: (p: ParcelaConta[]) => void;
@@ -720,7 +792,8 @@ function Modal({
   salvar: () => void;
 }) {
   const soma = parcelas.reduce((s, p) => s + Number(p.valor), 0),
-    ok = Math.round(soma * 100) === Math.round(total * 100);
+    ok =
+      !validarTotal || Math.round(soma * 100) === Math.round(total * 100);
   return (
     <div className="fundo-modal">
       <section className="modal-parcelas">
@@ -761,6 +834,45 @@ function criarParcelas(total: number, qtd: number, data: string) {
     };
   });
 }
+function criarParcelasRecorrentes(
+  valor: number,
+  data: string,
+  frequencia: FrequenciaRecorrencia,
+) {
+  if (!data || valor <= 0) return [];
+  const [ano, mes, dia] = data.split("-").map(Number);
+  const primeiro = new Date(ano, mes - 1, dia);
+  const limite = new Date(ano, 11, 31);
+  const datas: Date[] = [];
+  for (let ocorrencia = 0; ; ocorrencia++) {
+    let atual: Date;
+    if (frequencia === "MENSAL") {
+      const mesAlvo = mes - 1 + ocorrencia;
+      const anoAlvo = ano + Math.floor(mesAlvo / 12);
+      const mesNormalizado = ((mesAlvo % 12) + 12) % 12;
+      const ultimoDia = new Date(anoAlvo, mesNormalizado + 1, 0).getDate();
+      atual = new Date(
+        anoAlvo,
+        mesNormalizado,
+        Math.min(dia, ultimoDia),
+      );
+    } else {
+      atual = new Date(primeiro);
+      if (frequencia === "DIARIA")
+        atual.setDate(primeiro.getDate() + ocorrencia);
+      else if (frequencia === "SEMANAL")
+        atual.setDate(primeiro.getDate() + ocorrencia * 7);
+      else atual.setFullYear(primeiro.getFullYear() + ocorrencia);
+    }
+    if (atual > limite) break;
+    datas.push(atual);
+  }
+  return datas.map((atual, indice) => ({
+    numero: indice + 1,
+    valor,
+    dataVencimento: `${atual.getFullYear()}-${String(atual.getMonth() + 1).padStart(2, "0")}-${String(atual.getDate()).padStart(2, "0")}`,
+  }));
+}
 function formatarMoeda(valor: number) {
   return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
@@ -771,21 +883,29 @@ function moedaParaNumero(valor: string) {
 function mascararMoeda(valor: string) {
   return formatarMoeda(moedaParaNumero(valor));
 }
+function proximoPrimeiroVencimento() {
+  const hoje = new Date();
+  const vencimento = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 10);
+  return `${vencimento.getFullYear()}-${String(vencimento.getMonth() + 1).padStart(2, "0")}-10`;
+}
 function formatarTamanho(bytes: number) {
   return bytes < 1024 * 1024
     ? `${(bytes / 1024).toFixed(1)} KB`
     : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
-function visualizarArquivoLocal(arquivo: File) {
-  const url = URL.createObjectURL(arquivo);
-  window.open(url, "_blank", "noopener,noreferrer");
-  setTimeout(() => URL.revokeObjectURL(url), 60000);
+function baixarArquivoLocal(arquivo: File) {
+  const url = URL.createObjectURL(arquivo), link = document.createElement("a");
+  link.href = url;
+  link.download = arquivo.name;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
-function IconeVisualizar() {
+function IconeBaixar() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
-      <circle cx="12" cy="12" r="2.75" />
+      <path d="M12 3v12M7 10l5 5 5-5M5 20h14" />
     </svg>
   );
 }
@@ -794,5 +914,16 @@ function IconeRemover() {
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <path d="M4 7h16M9 7V4h6v3m3 0-1 13H7L6 7m4 4v5m4-5v5" />
     </svg>
+  );
+}
+function IconeTipoConta({ tipo }: { tipo: TipoContaEnum }) {
+  return (
+    <span className="icone-tipo-conta" aria-hidden="true">
+      <svg viewBox="0 0 32 24">
+        <circle cx="11" cy="12" r="8.5" />
+        <text x="11" y="14.6" textAnchor="middle">R$</text>
+        <path d={tipo === "RECEBER" ? "M29 12H20M23.5 8.5 20 12l3.5 3.5" : "M20 12h9M25.5 8.5 29 12l-3.5 3.5"} />
+      </svg>
+    </span>
   );
 }

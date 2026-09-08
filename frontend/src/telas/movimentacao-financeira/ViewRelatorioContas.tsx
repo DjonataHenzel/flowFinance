@@ -9,8 +9,8 @@ const moeda=(v:number)=>v.toLocaleString("pt-BR",{style:"currency",currency:"BRL
 const rotuloBanco:Record<string,string>={NUBANK:"Nubank",SICREDI:"Sicredi",SICOOB:"Sicoob",BANCO_DO_BRASIL:"Banco do Brasil",CAIXA:"Caixa",PLUXE:"Pluxe"};
 
 export default function ViewRelatorioContas(){
-  const[inicio,setInicio]=useState(inicioMes),[fim,setFim]=useState(fimMes),[dados,setDados]=useState<ContaRelatorio[]>([]),[erro,setErro]=useState(""),[carregando,setCarregando]=useState(false);
-  async function gerar(){if(fim<inicio){setErro("A data final não pode ser anterior à data inicial.");return}setCarregando(true);setErro("");try{setDados(await buscarRelatorioContas(inicio,fim))}catch(e){setErro(e instanceof Error?e.message:"Erro ao gerar relatório.")}finally{setCarregando(false)}}
+  const[inicio,setInicio]=useState(inicioMes),[fim,setFim]=useState(fimMes),[dados,setDados]=useState<ContaRelatorio[]>([]),[erro,setErro]=useState(""),[carregando,setCarregando]=useState(false),[consultado,setConsultado]=useState(false);
+  async function gerar(){if(fim<inicio){setErro("A data final não pode ser anterior à data inicial.");return}setCarregando(true);setErro("");try{setDados(await buscarRelatorioContas(inicio,fim));setConsultado(true)}catch(e){setErro(e instanceof Error?e.message:"Erro ao gerar relatório.")}finally{setCarregando(false)}}
   useEffect(()=>{gerar()},[]);
   function enviar(e:FormEvent){e.preventDefault();gerar()}
   const pagas=dados.filter(x=>x.tipo==="PAGAR"&&x.situacao==="PAGA"),
@@ -27,23 +27,24 @@ export default function ViewRelatorioContas(){
       <button className="botao-adicionar" disabled={carregando}>{carregando?"Gerando...":"Gerar relatório"}</button>
     </form>
     {erro&&<p className="mensagem-erro">{erro}</p>}
-    <div className="grade-grupos-relatorio">
-      <GrupoContas titulo="Contas pagas" itens={pagas} variante="pago"/>
-      <GrupoContas titulo="Contas a pagar" itens={aPagar} variante="pagar"/>
-      <GrupoContas titulo="Contas recebidas" itens={recebidas} variante="recebido"/>
-      <GrupoContas titulo="Contas a receber" itens={aReceber} variante="receber"/>
-    </div>
-    <section className="resumo-debitos-automaticos">
+    {!!dados.length&&<div className="grade-grupos-relatorio">
+      {!!pagas.length&&<GrupoContas titulo="Contas pagas" itens={pagas} variante="pago"/>}
+      {!!aPagar.length&&<GrupoContas titulo="Contas a pagar" itens={aPagar} variante="pagar"/>}
+      {!!recebidas.length&&<GrupoContas titulo="Contas recebidas" itens={recebidas} variante="recebido"/>}
+      {!!aReceber.length&&<GrupoContas titulo="Contas a receber" itens={aReceber} variante="receber"/>}
+    </div>}
+    {consultado&&!carregando&&!erro&&!dados.length&&<p className="lista-vazia mensagem-relatorio-vazio">Nenhuma conta encontrada no período.</p>}
+    {!!debitosPorBanco.length&&<section className="resumo-debitos-automaticos">
       <div className="cabecalho-resumo-debitos"><div><h2>Débitos automáticos por banco</h2><p>Somatória das contas pagas e a pagar vinculadas a cada banco.</p></div><strong>{moeda(debitosPorBanco.reduce((s,x)=>s+x.pago+x.aPagar,0))}</strong></div>
-      <div className="grade-debitos-banco">{debitosPorBanco.map(x=><article key={x.banco}><h3>{rotuloBanco[x.banco]}</h3><div><DetalhesDebitos rotulo="Pago" total={x.pago} itens={x.contasPagas} classe="texto-verde"/><DetalhesDebitos rotulo="A pagar" total={x.aPagar} itens={x.contasAPagar} classe="texto-vermelho"/></div><footer><span>Total</span><strong>{moeda(x.pago+x.aPagar)}</strong></footer></article>)}{!debitosPorBanco.length&&<p className="lista-vazia">Nenhuma conta com débito automático no período.</p>}</div>
-    </section>
-    <div className="totalizador-relatorio totalizador-contas">
+      <div className="grade-debitos-banco">{debitosPorBanco.map(x=><article key={x.banco}><h3>{rotuloBanco[x.banco]}</h3><div><DetalhesDebitos rotulo="Pago" total={x.pago} itens={x.contasPagas} classe="texto-verde"/><DetalhesDebitos rotulo="A pagar" total={x.aPagar} itens={x.contasAPagar} classe="texto-vermelho"/></div><footer><span>Total</span><strong>{moeda(x.pago+x.aPagar)}</strong></footer></article>)}</div>
+    </section>}
+    {!!dados.length&&<div className="totalizador-relatorio totalizador-contas">
       <span className="total-pago">Total pago<strong>{moeda(total(pagas))}</strong></span>
       <span className="total-pagar">A pagar<strong>{moeda(total(aPagar))}</strong></span>
       <span className="total-recebido">Total recebido<strong>{moeda(total(recebidas))}</strong></span>
       <span className="total-receber">A receber<strong>{moeda(total(aReceber))}</strong></span>
       <span className="total-geral">Total do período<strong>{moeda(total(dados))}</strong></span>
-    </div>
+    </div>}
   </section>
 }
 

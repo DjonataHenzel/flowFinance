@@ -168,7 +168,7 @@ button, input, select, textarea { font: inherit; }
 .lista-movimentacoes { margin: 0; padding: 0; list-style: none; }
 .lista-movimentacoes li { display: flex; justify-content: space-between; padding: .9rem 0; border-bottom: 1px solid #edf1f5; }
 .texto-verde { color: #1dbf73; } .texto-vermelho { color: #ef5a5a; } .texto-azul { color: #2c7be5; }
-.formulario-movimentacao { max-width: 600px; margin: 0 auto; }
+.formulario-movimentacao { width: min(100%, 720px); max-width: 720px; margin: 0 auto; }
 .formulario-compromisso { width: min(100%,720px); max-width: 720px; }
 .formulario-compromisso .rotulo-campo > .campo-formulario { display:block; box-sizing:border-box; min-height:44px; margin-top:.4rem; }
 .secao-endereco-compromisso { margin-top:1rem; border:1px solid rgba(56,189,248,.2); border-radius:12px; background:rgba(2,12,29,.28); }
@@ -227,6 +227,26 @@ button, input, select, textarea { font: inherit; }
 .opcao-checkbox { display:flex; align-items:center; gap:.55rem; cursor:pointer; }
 .opcao-checkbox input { width:1rem; height:1rem; margin:0; accent-color:#2c7be5; }
 .opcoes-lancamento { display:flex; flex-wrap:wrap; gap:1.5rem; margin-top:1rem; }
+.grade-configuracao-conta { display: grid; grid-template-columns: minmax(115px, .7fr) minmax(0, 1.4fr) minmax(225px, 1.3fr); align-items: end; gap: 0 .75rem; width: 100%; }
+.grade-configuracao-conta > * { min-width: 0; }
+.grade-configuracao-conta .campo-conta-bancaria { grid-column: 2; grid-row: 1; }
+.grade-configuracao-conta .campo-tipo-conta { grid-column: 1; grid-row: 1; }
+.grade-configuracao-conta .opcoes-lancamento-em-linha { grid-column: 3; grid-row: 1; }
+.grade-configuracao-conta .rotulo-campo > .campo-formulario { display: block; box-sizing: border-box; min-height: 44px; margin-top: .4rem; }
+.opcoes-lancamento-em-linha { align-items: center; align-self: end; flex-wrap: nowrap; justify-content: flex-start; gap: .7rem; min-height: 44px; margin: 0 0 .4rem; white-space: nowrap; }
+.opcoes-lancamento-em-linha .opcao-checkbox { flex: 0 0 auto; font-size: .8rem; white-space: nowrap; }
+.titulo-formulario-conta { display: flex; align-items: center; gap: .75rem; }
+.icone-tipo-conta { display: grid; flex: 0 0 42px; place-items: center; width: 42px; height: 42px; border: 1px solid currentColor; border-radius: 12px; background: rgba(56, 189, 248, .08); }
+.icone-tipo-conta svg { width: 31px; height: 24px; overflow: visible; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.icone-tipo-conta text { fill: currentColor; stroke: none; font-family: Arial, sans-serif; font-size: 6.5px; font-weight: 800; letter-spacing: -.4px; }
+.titulo-conta-receber .icone-tipo-conta { color: #4ade80; background: rgba(34, 197, 94, .1); }
+.titulo-conta-pagar .icone-tipo-conta { color: #fb7185; background: rgba(244, 63, 94, .1); }
+@media (max-width: 700px) {
+  .grade-configuracao-conta { grid-template-columns: 1fr; }
+  .grade-configuracao-conta .campo-tipo-conta { grid-column: 1; grid-row: 1; }
+  .grade-configuracao-conta .campo-conta-bancaria { grid-column: 1; grid-row: 2; }
+  .grade-configuracao-conta .opcoes-lancamento-em-linha { grid-column: 1; grid-row: 3; justify-content: flex-start; margin-top: .75rem; }
+}
 .secao-recorrencia { margin-top:1rem; padding:1rem; border:1px solid rgba(56,189,248,.22); border-radius:12px; background:rgba(2,12,29,.35); }
 .secao-recorrencia h2 { margin:0; font-size:1.05rem; }
 .secao-recorrencia .subtitulo { margin:.35rem 0 .8rem; }
@@ -269,9 +289,23 @@ button, input, select, textarea { font: inherit; }
 .grade-notificacao-compromisso { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); align-items:start; gap:0 1rem; width:100%; }
 .grade-notificacao-compromisso > * { min-width:0; }
 .grade-classificacao-compromisso { display:grid; grid-template-columns:1fr; width:100%; }
+.grade-notificacao-conta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 0 1rem; width: 100%; }
+.grade-notificacao-conta > * { min-width: 0; }
+.grade-classificacao-conta { display: grid; grid-template-columns: 1fr; }
+.grade-classificacao-conta .rotulo-campo:first-child { margin-top: 1rem; }
+.grade-valores-conta { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(90px, .65fr) minmax(0, 1fr); gap: 0 1rem; width: 100%; }
+.grade-valores-conta > * { min-width: 0; }
+.grade-valores-conta > label { align-self: end; margin-bottom: .4rem; grid-row: 1; }
+.grade-valores-conta > input { box-sizing: border-box; grid-row: 2; }
+.grade-valores-conta > label:nth-of-type(1),
+.grade-valores-conta > input:nth-of-type(1) { grid-column: 1; }
+.grade-valores-conta > label:nth-of-type(2),
+.grade-valores-conta > input:nth-of-type(2) { grid-column: 2; }
+.grade-valores-conta > label:nth-of-type(3),
+.grade-valores-conta > input:nth-of-type(3) { grid-column: 3; }
 .campo-cidade-uf { display:grid; grid-template-columns:minmax(0,1fr) 4.5rem; gap:0 1rem; }
 .campo-cidade-uf .rotulo-campo { min-width:0; }
-@media (max-width:650px) { .grade-compromisso-principal,.grade-notificacao-compromisso { grid-template-columns:1fr; } }
+@media (max-width:650px) { .grade-compromisso-principal,.grade-notificacao-compromisso,.grade-notificacao-conta,.grade-valores-conta { grid-template-columns:1fr; } .grade-valores-conta > label,.grade-valores-conta > input { grid-column:1!important; grid-row:auto; } .grade-valores-conta > label { margin-bottom:.4rem; } }
 @media (max-width:650px) { .grade-identificacao-pessoa,.linha-canal-notificacao { grid-template-columns:1fr; } }
 @media (max-width:650px) { .campo-cidade-uf { grid-template-columns:minmax(0,1fr) 4.5rem; gap:0 .75rem; } }
 .filtros-pessoas { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto; align-items:end; gap:.75rem; margin:1.25rem 0; }
@@ -344,7 +378,7 @@ button, input, select, textarea { font: inherit; }
 .acoes-anexo svg { width:1.2rem; height:1.2rem; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
 .acoes-anexo .remover-anexo { color:#b91c1c; }
 .acoes-anexo .remover-anexo:hover { background:#fef2f2; }
-.formulario-compromisso .lista-anexos { margin-top:.9rem; }
+:is(.formulario-compromisso,.formulario-movimentacao) .lista-anexos { margin-top:.9rem; }
 .rotulos-contato-compromisso { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr) 44px; gap:.6rem; margin:.15rem 0 .4rem; color:#b8c8da; font-size:.9rem; font-weight:600; }
 .formulario-compromisso .linha-contato-compromisso { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr) 44px; align-items:center; gap:.6rem; }
 .formulario-compromisso .linha-contato-compromisso .campo-formulario { box-sizing:border-box; width:100%; height:44px; margin:0; }
@@ -353,15 +387,15 @@ button, input, select, textarea { font: inherit; }
 .lista-contatos-compromisso li>span strong,.lista-contatos-compromisso li>span small { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .lista-contatos-compromisso li>span small { color:#91a6c2; font-size:.85rem; font-weight:400; }
 @media(max-width:600px){.rotulos-contato-compromisso{display:none}.formulario-compromisso .linha-contato-compromisso{grid-template-columns:1fr 44px}.formulario-compromisso .linha-contato-compromisso #descricao-whatsapp-compromisso{grid-column:1/-1;grid-row:2}}
-.formulario-compromisso .lista-anexos li { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:.6rem; padding:.75rem 0; }
-.formulario-compromisso .dados-anexo { display:grid; grid-template-columns:minmax(0,140px) minmax(150px,1fr); align-items:center; gap:.65rem; min-width:0; }
-.formulario-compromisso .identificacao-anexo { min-width:0; }
-.formulario-compromisso .dados-anexo strong { overflow:hidden; color:#dce8f8; text-overflow:ellipsis; white-space:nowrap; }
-.formulario-compromisso .descricao-anexo { box-sizing:border-box; min-width:0; min-height:44px; margin-top:0; }
-.formulario-compromisso .acoes-anexo { display:flex; align-self:end; align-items:center; gap:.35rem; padding-bottom:0; }
-.formulario-compromisso .acoes-anexo button { display:grid; place-items:center; width:44px; height:44px; padding:0; border:1px solid rgba(59,130,246,.24); border-radius:10px; color:#60a5fa; background:rgba(37,99,235,.08); }
-.formulario-compromisso .acoes-anexo .remover-anexo { border-color:rgba(248,113,113,.25); color:#f87171; background:rgba(185,28,28,.1); }
-@media(max-width:600px){.formulario-compromisso .lista-anexos li{grid-template-columns:1fr}.formulario-compromisso .dados-anexo{grid-template-columns:minmax(0,120px) minmax(130px,1fr)}.formulario-compromisso .acoes-anexo{justify-content:flex-end}}
+:is(.formulario-compromisso,.formulario-movimentacao) .lista-anexos li { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:.6rem; padding:.75rem 0; }
+:is(.formulario-compromisso,.formulario-movimentacao) .dados-anexo { display:grid; grid-template-columns:minmax(0,140px) minmax(150px,1fr); align-items:center; gap:.65rem; min-width:0; }
+:is(.formulario-compromisso,.formulario-movimentacao) .identificacao-anexo { min-width:0; }
+:is(.formulario-compromisso,.formulario-movimentacao) .dados-anexo strong { overflow:hidden; color:#dce8f8; text-overflow:ellipsis; white-space:nowrap; }
+:is(.formulario-compromisso,.formulario-movimentacao) .descricao-anexo { box-sizing:border-box; min-width:0; min-height:44px; margin-top:0; }
+:is(.formulario-compromisso,.formulario-movimentacao) .acoes-anexo { display:flex; align-self:end; align-items:center; gap:.35rem; padding-bottom:0; }
+:is(.formulario-compromisso,.formulario-movimentacao) .acoes-anexo button { display:grid; place-items:center; width:44px; height:44px; padding:0; border:1px solid rgba(59,130,246,.24); border-radius:10px; color:#60a5fa; background:rgba(37,99,235,.08); }
+:is(.formulario-compromisso,.formulario-movimentacao) .acoes-anexo .remover-anexo { border-color:rgba(248,113,113,.25); color:#f87171; background:rgba(185,28,28,.1); }
+@media(max-width:600px){:is(.formulario-compromisso,.formulario-movimentacao) .lista-anexos li{grid-template-columns:1fr}:is(.formulario-compromisso,.formulario-movimentacao) .dados-anexo{grid-template-columns:minmax(0,120px) minmax(130px,1fr)}:is(.formulario-compromisso,.formulario-movimentacao) .acoes-anexo{justify-content:flex-end}}
 @media (max-width:650px) { .cabecalho-principal { padding: 0 1rem; } .marca { margin-right: .5rem; } .area-usuario span { display: none; } .grade-baixa,.linha-contato,.filtros-pessoas { grid-template-columns:1fr; } .cabecalho-listagem,.acoes-cabecalho { flex-direction:column; } .acoes-formulario { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); } .acoes-formulario .botao-primario,.acoes-formulario .botao-secundario { width:100%; } .calendario-cabecalho { align-items:stretch; } .calendario-controles h2 { min-width:0; font-size:1.05rem; } .calendario-dia { min-height:72px; padding:.3rem; } .calendario-dia-semana { padding:.45rem .1rem; font-size:.65rem; } .indicador-compromissos { padding:.22rem; font-size:.62rem; } .popup-compromissos-dia { left:50%; transform:translateX(-50%); } }
 
 /* Tema tecnológico escuro */

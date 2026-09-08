@@ -82,12 +82,14 @@ O backend segue a separação `controller` → `service` → PostgreSQL via `Jdb
 ## Funcionalidades principais
 
 - Contas a pagar e receber, com parcelas, anexos, baixas e estornos.
-- Lançamentos recorrentes diários, semanais, mensais ou anuais.
+- Contas recorrentes diárias, semanais, mensais ou anuais, centralizadas em um
+  único registro com parcelas geradas até dezembro.
 - Contas bancárias vinculadas a um titular e débito automático.
 - Relatório mensal por vencimento, situação e banco de débito automático.
 - Categorias e subcategorias com CRUD completo e vínculo de cada subcategoria à sua categoria.
 - Contas, compromissos, relatórios e demais visualizações com informações de categoria e subcategoria.
-- Agenda e relatório de compromissos por período, incluindo data e horário, hora da notificação e situação.
+- Agenda e relatório de compromissos por período, incluindo data e horário,
+  hora da notificação, situação, contatos de WhatsApp e anexos.
 - Pessoas e canais de notificação WhatsApp/ntfy, com geração automática de tópico ntfy.
 - Sugestão automática da pessoa vinculada ao usuário autenticado ao cadastrar contas e compromissos; a seleção continua editável.
 - Mensagens de notificação de contas e compromissos geradas em um componente centralizado.
@@ -106,7 +108,12 @@ O acesso aos novos cadastros e vínculos segue o modelo de papéis e permissões
 
 ### Recorrências
 
-Ao cadastrar uma conta recorrente, o sistema cria lançamentos independentes até 31 de dezembro do ano do primeiro vencimento. A edição de um lançamento existente não gera novamente a série. Em recorrências mensais, cada data é calculada a partir do vencimento original; por exemplo, uma série iniciada em 31 de janeiro usa o último dia de fevereiro e volta ao dia 31 em março.
+Ao marcar uma conta como recorrente, o sistema gera as ocorrências até 31 de
+dezembro do ano do primeiro vencimento e as mantém como parcelas de uma única
+conta. O valor informado é aplicado a cada ocorrência, enquanto o valor total
+da conta corresponde à soma das parcelas. Em recorrências mensais, cada data é
+calculada a partir do vencimento original; por exemplo, uma série iniciada em
+31 de janeiro usa o último dia de fevereiro e volta ao dia 31 em março.
 
 ## Banco de dados
 

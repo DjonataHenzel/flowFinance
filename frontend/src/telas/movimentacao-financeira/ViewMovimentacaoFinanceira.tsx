@@ -18,6 +18,19 @@ const rotuloSituacao = {
 };
 const moeda = (valor: number) =>
   valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const dataParaInput = (data: Date) => {
+  const ano = data.getFullYear();
+  const mes = String(data.getMonth() + 1).padStart(2, "0");
+  const dia = String(data.getDate()).padStart(2, "0");
+  return `${ano}-${mes}-${dia}`;
+};
+const hoje = new Date();
+const inicioMesAtual = dataParaInput(
+  new Date(hoje.getFullYear(), hoje.getMonth(), 1),
+);
+const fimMesAtual = dataParaInput(
+  new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0),
+);
 
 export default function ViewMovimentacaoFinanceira({
   aoEditar,
@@ -40,9 +53,9 @@ export default function ViewMovimentacaoFinanceira({
     [sucessoNotificacao, setSucessoNotificacao] = useState("");
   const [descricaoFiltro, setDescricaoFiltro] = useState(""),
     [valorFiltro, setValorFiltro] = useState(""),
-    [situacaoFiltro, setSituacaoFiltro] = useState(""),
-    [dataInicialFiltro, setDataInicialFiltro] = useState(""),
-    [dataFinalFiltro, setDataFinalFiltro] = useState("");
+    [situacaoFiltro, setSituacaoFiltro] = useState("ABERTA"),
+    [dataInicialFiltro, setDataInicialFiltro] = useState(inicioMesAtual),
+    [dataFinalFiltro, setDataFinalFiltro] = useState(fimMesAtual);
   async function carregar() {
     if (dataInicialFiltro && dataFinalFiltro && dataFinalFiltro < dataInicialFiltro) {
       setErro("A data final não pode ser anterior à data inicial.");
@@ -153,7 +166,10 @@ export default function ViewMovimentacaoFinanceira({
           .toLocaleLowerCase("pt-BR")
           .includes(descricaoFiltro.toLocaleLowerCase("pt-BR"))) &&
       (!valorFiltro || Math.abs(c.valorTotal - Number(valorFiltro)) < 0.005) &&
-      (!situacaoFiltro || c.situacao === situacaoFiltro),
+      (!situacaoFiltro ||
+        (situacaoFiltro === "ABERTA"
+          ? ["ABERTA", "PARCELADA"].includes(c.situacao)
+          : c.situacao === situacaoFiltro)),
   );
   return (
     <>
@@ -217,8 +233,7 @@ export default function ViewMovimentacaoFinanceira({
               onChange={(e) => setSituacaoFiltro(e.target.value)}
             >
               <option value="">Todas</option>
-              <option value="ABERTA">Aberta</option>
-              <option value="PARCELADA">Parcelada</option>
+              <option value="ABERTA">Aberta / Parcelada</option>
               <option value="PAGA">Paga</option>
               <option value="RECEBIDA">Recebida</option>
             </select>
@@ -249,9 +264,9 @@ export default function ViewMovimentacaoFinanceira({
             onClick={() => {
               setDescricaoFiltro("");
               setValorFiltro("");
-              setSituacaoFiltro("");
-              setDataInicialFiltro("");
-              setDataFinalFiltro("");
+              setSituacaoFiltro("ABERTA");
+              setDataInicialFiltro(inicioMesAtual);
+              setDataFinalFiltro(fimMesAtual);
             }}
           >
             Limpar filtros

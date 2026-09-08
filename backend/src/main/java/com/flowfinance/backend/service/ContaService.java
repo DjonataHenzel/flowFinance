@@ -193,7 +193,6 @@ public class ContaService {
                     """,id,a.descricao().trim(),usuario,a.id(),usuario);
             if(copiados==0)throw new IllegalArgumentException("Anexo de origem não encontrado ou sem permissão de acesso");
         }
-        if(c.recorrente()) gerarRecorrencias(c,usuario,id);
         return id;
     }
 
@@ -429,21 +428,6 @@ public class ContaService {
     private boolean podeAcessarConta(long id,String usuario) {
         Integer quantidade=jdbc.queryForObject("SELECT COUNT(*) FROM contas c LEFT JOIN usuario autor ON autor.id=c.usuario_cadastro JOIN usuario atual ON atual.usuario=? WHERE c.id=? AND (autor.usuario=? OR atual.visualizar_cadastros_todos_usuarios)",Integer.class,usuario,id,usuario);
         return quantidade!=null&&quantidade>0;
-    }
-
-    private void gerarRecorrencias(NovaContaRequest c,String usuario,long contaOriginalId) {
-        LocalDate primeiro=c.parcelas().stream().map(ParcelaContaRequest::dataVencimento).min(LocalDate::compareTo).orElseThrow();
-        LocalDate limite=LocalDate.of(primeiro.getYear(),12,31);
-        int ocorrencia=1;
-        LocalDate proxima=avancar(primeiro,c.frequenciaRecorrencia(),ocorrencia);
-        while(!proxima.isAfter(limite)) {
-            long dias=java.time.temporal.ChronoUnit.DAYS.between(primeiro,proxima);
-            List<ParcelaContaRequest> parcelas=c.parcelas().stream().map(p->new ParcelaContaRequest(p.numero(),p.valor(),p.dataVencimento().plusDays(dias))).toList();
-            Long id=inserirConta(c,usuario,parcelas);salvarPessoas(id,c.pessoaIds());gravarParcelas(id,parcelas);
-            jdbc.update("INSERT INTO anexos_contas(conta_id,nome_arquivo,descricao,tipo_arquivo,tamanho,conteudo) SELECT ?,nome_arquivo,descricao,tipo_arquivo,tamanho,conteudo FROM anexos_contas WHERE conta_id=?",id,contaOriginalId);
-            ocorrencia++;
-            proxima=avancar(primeiro,c.frequenciaRecorrencia(),ocorrencia);
-        }
     }
 
     static LocalDate avancar(LocalDate data,FrequenciaRecorrenciaEnum frequencia,int ocorrencias) {
