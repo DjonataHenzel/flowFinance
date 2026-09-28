@@ -37,6 +37,15 @@ class AutorizacaoInterceptorTest {
     }
 
     @Test
+    void deveRedirecionarDownloadParaLoginQuandoSessaoExpirar() throws Exception {
+        MockHttpServletRequest request=new MockHttpServletRequest("GET","/api/contas/10/anexos/4/download");
+        MockHttpServletResponse response=new MockHttpServletResponse();
+        assertFalse(interceptor.preHandle(request,response,new Object()));
+        assertEquals(302,response.getStatus());
+        assertEquals("/?download=%2Fapi%2Fcontas%2F10%2Fanexos%2F4%2Fdownload",response.getHeader("Location"));
+    }
+
+    @Test
     void deveRejeitarOperacaoSemPermissao() throws Exception {
         MockHttpServletRequest request=new MockHttpServletRequest("DELETE","/api/contas/10");
         request.getSession().setAttribute("usuario","teste");

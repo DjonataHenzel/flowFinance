@@ -32,12 +32,12 @@ public class SubCategoriaService {
 
     public List<CategoriaOpcao> listarCategoriasVinculaveis(String usuario) {
         return jdbc.query("""
-                SELECT c.id,c.nome
+                SELECT c.id,c.nome,c.tipo_utilizacao
                   FROM categorias c
                   JOIN usuario u ON u.id=c.usuario_id
                  WHERE u.usuario=?
                  ORDER BY LOWER(c.nome),c.id
-                """, (r, n) -> new CategoriaOpcao(r.getLong(1), r.getString(2)), usuario);
+                """, (r, n) -> new CategoriaOpcao(r.getLong(1), r.getString(2), r.getString(3)), usuario);
     }
 
     public Optional<SubCategoriaResumo> buscar(long id, String usuario) {
@@ -147,6 +147,9 @@ public class SubCategoriaService {
     }
 
     public record SubCategoriaResumo(long id, String nome, String descricao, long categoriaId,
-            String categoria, OffsetDateTime criadoEm, int quantidadeMovimentacoes) {}
-    public record CategoriaOpcao(long id, String nome) {}
+            String categoria, OffsetDateTime criadoEm, int quantidadeMovimentacoes) {
+    }
+
+    public record CategoriaOpcao(long id, String nome, String tipoUtilizacao) {
+    }
 }

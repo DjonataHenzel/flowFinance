@@ -61,7 +61,7 @@ export default function Pessoa({
           setP({
             ...x,
             cpf: formatarCpf(x.cpf ?? ""),
-            cep: x.cep ?? "",
+            cep: formatarCep(x.cep ?? ""),
             logradouro: x.logradouro ?? "",
             numero: x.numero ?? "",
             complemento: x.complemento ?? "",
@@ -146,96 +146,96 @@ export default function Pessoa({
       <section className="secao-cadastro-pessoa">
         <h2>Dados pessoais</h2>
         <div className="grade-identificacao-pessoa">
-        <label className="rotulo-campo">
-          Nome *
-          <input
-            className="campo-formulario"
-            value={p.nome}
-            onChange={(e) => alterar("nome", e.target.value)}
-            required
-            maxLength={150}
-          />
-        </label>
-        <label className="rotulo-campo">
-          CPF
-          <input
-            className="campo-formulario"
-            value={p.cpf}
-            onChange={(e) => alterar("cpf", formatarCpf(e.target.value))}
-            placeholder="Opcional"
-            inputMode="numeric"
-            maxLength={14}
-          />
-        </label>
+          <label className="rotulo-campo">
+            Nome *
+            <input
+              className="campo-formulario"
+              value={p.nome}
+              onChange={(e) => alterar("nome", e.target.value)}
+              required
+              maxLength={150}
+            />
+          </label>
+          <label className="rotulo-campo">
+            CPF
+            <input
+              className="campo-formulario"
+              value={p.cpf}
+              onChange={(e) => alterar("cpf", formatarCpf(e.target.value))}
+              placeholder="Opcional"
+              inputMode="numeric"
+              maxLength={14}
+            />
+          </label>
         </div>
       </section>
       <section className="secao-cadastro-pessoa">
         <h2>Endereço</h2>
-        <div className="grade-baixa">
-        <label className="rotulo-campo">
-          CEP
-          <input
-            className="campo-formulario"
-            value={p.cep}
-            onChange={(e) => alterar("cep", formatarCep(e.target.value))}
-            onBlur={cep}
-          />
-        </label>
-        <label className="rotulo-campo">
-          Número
-          <input
-            className="campo-formulario"
-            value={p.numero}
-            onChange={(e) => alterar("numero", e.target.value)}
-          />
-        </label>
-        </div>
-        <div className="grade-baixa">
-        <label className="rotulo-campo">
-          Logradouro
-          <input
-            className="campo-formulario"
-            value={p.logradouro}
-            onChange={(e) => alterar("logradouro", e.target.value)}
-          />
-        </label>
-        <label className="rotulo-campo">
-          Complemento
-          <input
-            className="campo-formulario"
-            value={p.complemento}
-            onChange={(e) => alterar("complemento", e.target.value)}
-          />
-        </label>
-        </div>
-        <div className="grade-baixa">
-        <label className="rotulo-campo">
-          Bairro
-          <input
-            className="campo-formulario"
-            value={p.bairro}
-            onChange={(e) => alterar("bairro", e.target.value)}
-          />
-        </label>
-        <div className="campo-cidade-uf">
+        <div className="grade-endereco-principal">
           <label className="rotulo-campo">
-            Cidade
+            Logradouro
             <input
               className="campo-formulario"
-              value={p.cidade}
-              onChange={(e) => alterar("cidade", e.target.value)}
+              value={p.logradouro}
+              onChange={(e) => alterar("logradouro", e.target.value)}
             />
           </label>
           <label className="rotulo-campo">
-            UF
+            Número
             <input
               className="campo-formulario"
-              value={p.uf}
-              onChange={(e) => alterar("uf", e.target.value)}
-              maxLength={2}
+              value={p.numero}
+              onChange={(e) => alterar("numero", e.target.value)}
             />
           </label>
         </div>
+        <div className="grade-endereco-detalhes">
+          <label className="rotulo-campo">
+            CEP
+            <input
+              className="campo-formulario"
+              value={p.cep}
+              onChange={(e) => alterar("cep", formatarCep(e.target.value))}
+              onBlur={cep}
+              inputMode="numeric"
+              maxLength={9}
+            />
+          </label>
+          <label className="rotulo-campo">
+            Complemento
+            <input
+              className="campo-formulario"
+              value={p.complemento}
+              onChange={(e) => alterar("complemento", e.target.value)}
+            />
+          </label>
+          <label className="rotulo-campo">
+            Bairro
+            <input
+              className="campo-formulario"
+              value={p.bairro}
+              onChange={(e) => alterar("bairro", e.target.value)}
+            />
+          </label>
+          <div className="campo-cidade-uf">
+            <label className="rotulo-campo">
+              Cidade
+              <input
+                className="campo-formulario"
+                value={p.cidade}
+                onChange={(e) => alterar("cidade", e.target.value)}
+              />
+            </label>
+            <label className="rotulo-campo">
+              UF
+              <input
+                className="campo-formulario"
+                value={p.uf}
+                onChange={(e) => alterar("uf", e.target.value)}
+                maxLength={2}
+              />
+            </label>
+          </div>
         </div>
       </section>
       <section className="secao-notificacao">

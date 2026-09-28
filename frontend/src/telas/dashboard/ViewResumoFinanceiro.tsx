@@ -1,7 +1,7 @@
 import {FormEvent,useEffect,useState} from 'react';
 import {buscarResumoFinanceiro} from '../../api';
 import type {SituacaoContaEnum} from '../../api';
-import type {ResumoFinanceiro as DadosResumo} from '../../types';
+import type {ResumoCategoria,ResumoFinanceiro as DadosResumo} from '../../types';
 
 function dataIso(data:Date){return data.toLocaleDateString('sv-SE')}
 function periodoInicial(){const hoje=new Date();return dataIso(new Date(hoje.getFullYear(),hoje.getMonth(),1))}
@@ -25,7 +25,7 @@ export default function ViewResumoFinanceiro(){
       <Cartao titulo="Receitas" valor={resumo.totalIncome} cor="verde"/>
       <Cartao titulo="Despesas" valor={resumo.totalExpenses} cor="vermelho"/>
       <Cartao titulo="Saldo" valor={resumo.balance} cor={resumo.balance>=0?'verde':'vermelho'}/>
-    </div><div className="grade-graficos"><GraficoComparativo receitas={resumo.totalIncome} despesas={resumo.totalExpenses}/><GraficoDistribuicao receitas={resumo.totalIncome} despesas={resumo.totalExpenses}/></div></>}
+    </div><div className="grade-graficos"><GraficoComparativo receitas={resumo.totalIncome} despesas={resumo.totalExpenses}/><GraficoDistribuicao receitas={resumo.totalIncome} despesas={resumo.totalExpenses}/></div><GraficoCategorias dados={resumo.categorias??[]}/><RelatorioCategorias dados={resumo.categorias??[]}/></>}
   </section>
 }
 
@@ -57,4 +57,19 @@ function GraficoDistribuicao({receitas,despesas}:{receitas:number;despesas:numbe
       </div>
     </div>
   </section>
+}
+
+const moeda=(valor:number)=>valor.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+
+function GraficoCategorias({dados}:{dados:ResumoCategoria[]}){
+  const maior=Math.max(0,...dados.flatMap(x=>[x.receitas,x.despesas]));
+  return <section className="grafico-resumo grafico-categorias">
+    <div className="cabecalho-grafico"><div><h2>Resumo por categoria e subcategoria</h2><p>Comparativo das receitas e despesas no período</p></div><div className="legenda-grafico"><span className="legenda-receita">Receitas</span><span className="legenda-despesa">Despesas</span></div></div>
+    <div className="linhas-categorias">{dados.map((x,i)=><article key={`${x.categoria}-${x.subcategoria}-${i}`}><div className="rotulo-categoria-grafico"><strong>{x.categoria}</strong><small>{x.subcategoria}</small></div><div className="barras-categoria"><div><i className="barra-categoria-receita" style={{width:maior?`${(x.receitas/maior)*100}%`:'0%'}}/><span>{moeda(x.receitas)}</span></div><div><i className="barra-categoria-despesa" style={{width:maior?`${(x.despesas/maior)*100}%`:'0%'}}/><span>{moeda(x.despesas)}</span></div></div></article>)}</div>
+    {!dados.length&&<p className="lista-vazia">Nenhuma movimentação categorizada no período.</p>}
+  </section>
+}
+
+function RelatorioCategorias({dados}:{dados:ResumoCategoria[]}){
+  return <section className="relatorio-resumo-categorias"><div><h2>Detalhamento por categoria e subcategoria</h2><p>Valores que mais movimentaram o período selecionado.</p></div><div className="tabela-responsiva"><table className="tabela-usuarios tabela-relatorio"><thead><tr><th>Categoria</th><th>Subcategoria</th><th>Movimentações</th><th>Receitas</th><th>Despesas</th><th>Saldo</th></tr></thead><tbody>{dados.map((x,i)=><tr key={`${x.categoria}-${x.subcategoria}-${i}`}><td>{x.categoria}</td><td>{x.subcategoria}</td><td>{x.movimentacoes}</td><td className="texto-verde">{moeda(x.receitas)}</td><td className="texto-vermelho">{moeda(x.despesas)}</td><td className={x.receitas-x.despesas>=0?'texto-verde':'texto-vermelho'}>{moeda(x.receitas-x.despesas)}</td></tr>)}{!dados.length&&<tr><td colSpan={6} className="lista-vazia">Nenhuma movimentação encontrada.</td></tr>}</tbody></table></div></section>
 }

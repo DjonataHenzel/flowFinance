@@ -34,30 +34,41 @@ public class UsuarioController {
 
     @PostMapping
     public ResponseEntity<Map<String, Object>> cadastrar(@Valid @RequestBody NovoUsuarioRequest request) {
-        service.cadastrar(request.usuario(), request.senha(),request.papelId(), request.pessoaId(), request.notificarContaVencendoWhatsapp(), request.contatosWhatsapp(), request.notificarContaVencendoNtfy(), request.topicoNtfy(),request.horaNotificacao(),request.diasAntecedencia(),request.visualizarCadastrosTodosUsuarios());
+        service.cadastrar(request.usuario(), request.senha(), request.papelId(), request.pessoaId(),
+                request.notificarContaVencendoWhatsapp(), request.contatosWhatsapp(),
+                request.notificarContaVencendoNtfy(), request.topicoNtfy(), request.horaNotificacao(),
+                request.diasAntecedencia(), request.visualizarCadastrosTodosUsuarios());
         return ResponseEntity.status(201).body(Map.of("message", "Usuário cadastrado com sucesso"));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Map<String, Object>> alterar(@PathVariable long id, @Valid @RequestBody AlterarUsuarioRequest request) {
-        if (!service.alterar(id, request.usuario(), request.senha(), request.ativo(),request.papelId(), request.pessoaId(), request.notificarContaVencendoWhatsapp(), request.contatosWhatsapp(), request.notificarContaVencendoNtfy(), request.topicoNtfy(),request.horaNotificacao(),request.diasAntecedencia(),request.visualizarCadastrosTodosUsuarios())) return ResponseEntity.notFound().build();
+    public ResponseEntity<Map<String, Object>> alterar(@PathVariable long id,
+            @Valid @RequestBody AlterarUsuarioRequest request) {
+        if (!service.alterar(id, request.usuario(), request.senha(), request.ativo(), request.papelId(),
+                request.pessoaId(), request.notificarContaVencendoWhatsapp(), request.contatosWhatsapp(),
+                request.notificarContaVencendoNtfy(), request.topicoNtfy(), request.horaNotificacao(),
+                request.diasAntecedencia(), request.visualizarCadastrosTodosUsuarios()))
+            return ResponseEntity.notFound().build();
         return ResponseEntity.ok(Map.of("message", "Usuário alterado com sucesso"));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Map<String, Object>> excluir(@PathVariable long id) {
-        return service.excluir(id) ? ResponseEntity.ok(Map.of("message", "Usuário excluído com sucesso")) : ResponseEntity.notFound().build();
+        return service.excluir(id) ? ResponseEntity.ok(Map.of("message", "Usuário excluído com sucesso"))
+                : ResponseEntity.notFound().build();
     }
 
     public record NovoUsuarioRequest(@NotBlank @Size(max = 100) String usuario,
-            @NotBlank @Size(min = 4, max = 72) String senha,@NotNull Long papelId, Long pessoaId,
+            @NotBlank @Size(min = 4, max = 72) String senha, @NotNull Long papelId, Long pessoaId,
             boolean notificarContaVencendoWhatsapp, List<String> contatosWhatsapp,
             boolean notificarContaVencendoNtfy, String topicoNtfy, LocalTime horaNotificacao, Integer diasAntecedencia,
             boolean visualizarCadastrosTodosUsuarios) {
     }
+
     public record AlterarUsuarioRequest(@NotBlank @Size(max = 100) String usuario,
-            @Size(min = 4, max = 72) String senha, boolean ativo,@NotNull Long papelId, Long pessoaId,
+            @Size(min = 4, max = 72) String senha, boolean ativo, @NotNull Long papelId, Long pessoaId,
             boolean notificarContaVencendoWhatsapp, List<String> contatosWhatsapp,
             boolean notificarContaVencendoNtfy, String topicoNtfy, LocalTime horaNotificacao, Integer diasAntecedencia,
-            boolean visualizarCadastrosTodosUsuarios) {}
+            boolean visualizarCadastrosTodosUsuarios) {
+    }
 }

@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS usuario (
     notificar_conta_vencendo_whatsapp BOOLEAN NOT NULL DEFAULT FALSE,
     notificar_conta_vencendo_ntfy BOOLEAN NOT NULL DEFAULT FALSE,
     topico_ntfy VARCHAR(80),
-    hora_notificacao TIME NOT NULL DEFAULT '08:00',
+    hora_notificacao TIME NOT NULL DEFAULT '09:00',
     dias_antecedencia INTEGER NOT NULL DEFAULT 0 CHECK (dias_antecedencia BETWEEN 0 AND 30),
     visualizar_cadastros_todos_usuarios BOOLEAN NOT NULL DEFAULT FALSE
 );

@@ -5,7 +5,7 @@ import {
   excluirCategoria,
   listarCategorias,
 } from "../../api";
-import type { Categoria, Funcionalidade } from "../../api";
+import type { Categoria, Funcionalidade, TipoUtilizacaoCategoria } from "../../api";
 
 export default function ViewCategorias({
   funcionalidades,
@@ -84,6 +84,7 @@ export default function ViewCategorias({
             <tr>
               <th>Nome</th>
               <th>Descrição</th>
+              <th>Utilização</th>
               <th>Movimentações</th>
               <th>Subcategorias</th>
             </tr>
@@ -100,13 +101,14 @@ export default function ViewCategorias({
               >
                 <td>{c.nome}</td>
                 <td>{c.descricao ?? "—"}</td>
+                <td>{c.tipoUtilizacao === "CONTAS" ? "Contas" : "Compromissos"}</td>
                 <td>{c.quantidadeMovimentacoes}</td>
                 <td>{c.quantidadeSubcategorias}</td>
               </tr>
             ))}
             {!lista.length && (
               <tr>
-                <td colSpan={4} className="lista-vazia">
+                <td colSpan={5} className="lista-vazia">
                   Nenhuma categoria cadastrada.
                 </td>
               </tr>
@@ -149,6 +151,7 @@ function Formulario({
   aoCancelar: () => void;
 }) {
   const [nome, setNome] = useState(registro?.nome ?? ""),
+    [tipoUtilizacao, setTipoUtilizacao] = useState<TipoUtilizacaoCategoria>(registro?.tipoUtilizacao ?? "CONTAS"),
     [descricao, setDescricao] = useState(registro?.descricao ?? ""),
     [erro, setErro] = useState(""),
     [salvando, setSalvando] = useState(false);
@@ -158,8 +161,8 @@ function Formulario({
     setErro("");
     try {
       registro
-        ? await alterarCategoria(registro.id, nome, descricao)
-        : await cadastrarCategoria(nome, descricao);
+        ? await alterarCategoria(registro.id, nome, descricao, tipoUtilizacao)
+        : await cadastrarCategoria(nome, descricao, tipoUtilizacao);
       aoSalvar();
     } catch (e) {
       setErro(e instanceof Error ? e.message : "Erro ao salvar categoria.");
@@ -170,14 +173,10 @@ function Formulario({
   return (
     <form className="painel formulario-movimentacao" onSubmit={salvar}>
       <h1>{registro ? "Alterar categoria" : "Nova categoria"}</h1>
-      <label className="rotulo-campo">Nome *</label>
-      <input
-        className="campo-formulario"
-        value={nome}
-        onChange={(e) => setNome(e.target.value)}
-        maxLength={100}
-        required
-      />
+      <div className="grade-nome-utilizacao-categoria">
+        <label className="rotulo-campo">Nome *<input className="campo-formulario" value={nome} onChange={(e) => setNome(e.target.value)} maxLength={100} required/></label>
+        <label className="rotulo-campo">Utilização *<select className="campo-formulario" value={tipoUtilizacao} onChange={(e)=>setTipoUtilizacao(e.target.value as TipoUtilizacaoCategoria)}><option value="CONTAS">Contas</option><option value="COMPROMISSOS">Compromissos</option></select></label>
+      </div>
       <label className="rotulo-campo">Descrição</label>
       <textarea
         className="campo-formulario"

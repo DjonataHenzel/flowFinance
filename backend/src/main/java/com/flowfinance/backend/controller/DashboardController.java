@@ -24,13 +24,13 @@ public class DashboardController {
     public ResumoFinanceiro dashboard(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataInicio,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataFim,
-            @RequestParam(required = false) SituacaoContaEnum situacao,HttpSession sessao) {
-        String usuario=sessao.getAttribute("usuario").toString();
+            @RequestParam(required = false) SituacaoContaEnum situacao, HttpSession sessao) {
+        String usuario = sessao.getAttribute("usuario").toString();
         if (dataInicio == null && dataFim == null && situacao == null) {
             return service.buscarResumoMesAtual(usuario);
         }
         LocalDate hoje = LocalDate.now();
         return service.buscarResumo(dataInicio == null ? hoje.withDayOfMonth(1) : dataInicio,
-                dataFim == null ? hoje.withDayOfMonth(hoje.lengthOfMonth()) : dataFim, situacao,usuario);
+                dataFim == null ? hoje.withDayOfMonth(hoje.lengthOfMonth()) : dataFim, situacao, usuario);
     }
 }

@@ -23,7 +23,7 @@ public class RelatorioService {
                   JOIN parcelas_contas p ON p.conta_id=c.id
                   JOIN usuario u ON u.id=c.usuario_cadastro
                   LEFT JOIN contas_bancarias cb ON cb.id=c.conta_bancaria_id
-                  LEFT JOIN categorias cat ON cat.id=c.categoria_id
+                  JOIN categorias cat ON cat.id=c.categoria_id AND cat.tipo_utilizacao='COMPROMISSOS'
                   LEFT JOIN subcategorias sub ON sub.id=c.subcategoria_id
                  WHERE (u.usuario=? OR (SELECT visualizar_cadastros_todos_usuarios FROM usuario WHERE usuario=?))
                    AND p.data_vencimento BETWEEN ? AND ?

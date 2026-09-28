@@ -6,6 +6,7 @@ import type {
   SituacaoCompromisso,
 } from "../../api";
 import { listarPessoas } from "../../api";
+import { formatarDataHora, formatarPrimeirosNomes } from "../../formatadores";
 import Compromisso from "./Compromisso";
 const situacao = {
   PENDENTE: "Pendente",
@@ -222,9 +223,9 @@ export default function ViewCompromissos() {
                   setMenu({ id: c.id, x: e.clientX, y: e.clientY });
                 }}
               >
-                <td>{new Date(c.dataHora).toLocaleString("pt-BR")}</td>
+                <td>{formatarDataHora(c.dataHora)}</td>
                 <td>{c.descricao}</td>
-                <td>{c.pessoas.join(", ")}</td>
+                <td>{formatarPrimeirosNomes(c.pessoas)}</td>
                 <td>{c.categoria ?? "Sem categoria"}</td>
                 <td>{c.subcategoria ?? "Sem subcategoria"}</td>
                 <td>{c.horaNotificacao.slice(0, 5)}</td>

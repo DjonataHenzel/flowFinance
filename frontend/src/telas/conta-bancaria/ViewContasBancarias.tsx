@@ -226,54 +226,64 @@ function Formulario({
   return (
     <form className="painel formulario-movimentacao" onSubmit={salvar}>
       <h1>{registro ? "Alterar" : "Nova"} conta bancária</h1>
-      <label className="rotulo-campo">Titular *</label>
-      <select
-        className="campo-formulario"
-        value={pessoaId}
-        onChange={(e) => setPessoaId(e.target.value)}
-        required
-      >
-        <option value="">Selecione uma pessoa</option>
-        {titulares.map((pessoa) => (
-          <option key={pessoa.id} value={pessoa.id}>
-            {pessoa.nome}
-            {pessoa.cpf ? ` · CPF ${pessoa.cpf}` : ""}
-          </option>
-        ))}
-      </select>
+      <div className="grade-conta-bancaria">
+        <label className="rotulo-campo campo-titular-conta">
+          Titular *
+          <select
+            className="campo-formulario"
+            value={pessoaId}
+            onChange={(e) => setPessoaId(e.target.value)}
+            required
+          >
+            <option value="">Selecione uma pessoa</option>
+            {titulares.map((pessoa) => (
+              <option key={pessoa.id} value={pessoa.id}>
+                {pessoa.nome}
+                {pessoa.cpf ? ` · CPF ${pessoa.cpf}` : ""}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="rotulo-campo">
+          Banco *
+          <select
+            className="campo-formulario"
+            value={banco}
+            onChange={(e) => setBanco(e.target.value as BancoEnum)}
+          >
+            {Object.entries(bancos).map(([valor, rotulo]) => (
+              <option key={valor} value={valor}>
+                {rotulo}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="rotulo-campo">
+          Agência *
+          <input
+            className="campo-formulario"
+            value={agencia}
+            maxLength={20}
+            onChange={(e) => setAgencia(e.target.value)}
+            required
+          />
+        </label>
+        <label className="rotulo-campo">
+          Número da conta *
+          <input
+            className="campo-formulario"
+            value={numero}
+            maxLength={30}
+            onChange={(e) => setNumero(e.target.value)}
+            required
+          />
+        </label>
+      </div>
       {!titulares.length && (
         <small className="ajuda-campo">
           Cadastre uma pessoa antes de criar a conta bancária.
         </small>
       )}
-      <label className="rotulo-campo">Banco *</label>
-      <select
-        className="campo-formulario"
-        value={banco}
-        onChange={(e) => setBanco(e.target.value as BancoEnum)}
-      >
-        {Object.entries(bancos).map(([valor, rotulo]) => (
-          <option key={valor} value={valor}>
-            {rotulo}
-          </option>
-        ))}
-      </select>
-      <label className="rotulo-campo">Agência *</label>
-      <input
-        className="campo-formulario"
-        value={agencia}
-        maxLength={20}
-        onChange={(e) => setAgencia(e.target.value)}
-        required
-      />
-      <label className="rotulo-campo">Número da conta *</label>
-      <input
-        className="campo-formulario"
-        value={numero}
-        maxLength={30}
-        onChange={(e) => setNumero(e.target.value)}
-        required
-      />
       {erro && <p className="mensagem-erro">{erro}</p>}
       <div className="acoes-formulario">
         <button

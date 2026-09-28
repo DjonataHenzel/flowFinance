@@ -24,7 +24,9 @@ export default function Usuario({
     [mostrarSenha, setMostrarSenha] = useState(false),
     [mostrarConfirmacao, setMostrarConfirmacao] = useState(false),
     [ativo, setAtivo] = useState(registro?.ativo ?? true),
-    [visualizarTodos, setVisualizarTodos] = useState(registro?.visualizarCadastrosTodosUsuarios ?? false),
+    [visualizarTodos, setVisualizarTodos] = useState(
+      registro?.visualizarCadastrosTodosUsuarios ?? false,
+    ),
     [papelId, setPapelId] = useState(
       registro?.papelId ? String(registro.papelId) : "",
     ),
@@ -41,7 +43,9 @@ export default function Usuario({
         setPapeis(lista.filter((p) => p.ativo || p.id === registro?.papelId)),
       )
       .catch((e) => setErro(e.message));
-    listarPessoasVinculaveis(registro?.id).then(setPessoas).catch((e) => setErro(e.message));
+    listarPessoasVinculaveis(registro?.id)
+      .then(setPessoas)
+      .catch((e) => setErro(e.message));
   }, [registro]);
 
   async function salvar(e: FormEvent) {
@@ -53,7 +57,7 @@ export default function Usuario({
     }
 
     if (!papelId) {
-      setErro("Selecione um papel para o usuário.");
+      setErro("Selecione uma permissão para o usuário.");
       return;
     }
     setSalvando(true);
@@ -74,7 +78,7 @@ export default function Usuario({
             [],
             false,
             "",
-            "08:00",
+            "09:00",
             0,
             visualizarTodos,
           )
@@ -87,7 +91,7 @@ export default function Usuario({
             [],
             false,
             "",
-            "08:00",
+            "09:00",
             0,
             visualizarTodos,
           );
@@ -112,14 +116,14 @@ export default function Usuario({
       />
       <div className="grade-baixa grade-vinculos-usuario">
         <label className="rotulo-campo">
-          Papel/permissão *
+          Permissão *
           <select
             className="campo-formulario"
             value={papelId}
             onChange={(e) => setPapelId(e.target.value)}
             required
           >
-            <option value="">Selecione um papel</option>
+            <option value="">Selecione uma permissão</option>
             {papeis.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.nome}
@@ -145,12 +149,13 @@ export default function Usuario({
       </div>
       {!papeis.length && (
         <small className="ajuda-campo">
-          Cadastre um papel ativo na tela de permissões antes de criar o
+          Cadastre uma permissão ativa na tela de permissões antes de criar o
           usuário.
         </small>
       )}
       <small className="ajuda-campo">
-        Essa pessoa será sugerida nas notificações de novas contas e compromissos.
+        Essa pessoa será sugerida nas notificações de novas contas e
+        compromissos.
       </small>
       <label className="rotulo-campo">Senha *</label>
       <div className="campo-senha">

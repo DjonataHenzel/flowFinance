@@ -44,7 +44,7 @@ public class CategoriaController {
     @PostMapping
     public ResponseEntity<Map<String, Object>> cadastrar(@Valid @RequestBody CategoriaRequest request,
             HttpSession sessao) {
-        long id = service.cadastrar(request.nome(), request.descricao(), usuario(sessao));
+        long id = service.cadastrar(request.nome(), request.descricao(), request.tipoUtilizacao(), usuario(sessao));
         return ResponseEntity.created(URI.create("/api/categorias/" + id))
                 .body(Map.of("id", id, "message", "Categoria cadastrada com sucesso"));
     }
@@ -52,8 +52,9 @@ public class CategoriaController {
     @PutMapping("/{id}")
     public ResponseEntity<Map<String, Object>> alterar(@PathVariable long id,
             @Valid @RequestBody CategoriaRequest request, HttpSession sessao) {
-        if (!service.alterar(id, request.nome(), request.descricao(), usuario(sessao)))
+        if (!service.alterar(id, request.nome(), request.descricao(), request.tipoUtilizacao(), usuario(sessao)))
             return ResponseEntity.notFound().build();
+
         return ResponseEntity.ok(Map.of("id", id, "message", "Categoria alterada com sucesso"));
     }
 
@@ -68,6 +69,8 @@ public class CategoriaController {
         return sessao.getAttribute("usuario").toString();
     }
 
-    public record CategoriaRequest(@NotBlank @Size(max = 100) String nome,
-            @Size(max = 255) String descricao) {}
+    public record CategoriaRequest(@NotBlank @Size(max = 100) String nome, @Size(max = 255) String descricao,
+            @NotBlank String tipoUtilizacao) {
+
+    }
 }

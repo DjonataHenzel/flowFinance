@@ -7,7 +7,10 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 public class ConfiguracaoCors implements WebMvcConfigurer {
     private final AutorizacaoInterceptor autorizacao;
-    public ConfiguracaoCors(AutorizacaoInterceptor autorizacao) { this.autorizacao = autorizacao; }
+
+    public ConfiguracaoCors(AutorizacaoInterceptor autorizacao) {
+        this.autorizacao = autorizacao;
+    }
 
     @Override
     public void addInterceptors(org.springframework.web.servlet.config.annotation.InterceptorRegistry registro) {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   baixarConta,
   buscarConta,
@@ -9,6 +9,7 @@ import {
   listarContas,
 } from "../../api";
 import type { ContaDetalhe, ContaResumo, Funcionalidade } from "../../api";
+import { formatarDataHora } from "../../formatadores";
 
 const rotuloSituacao = {
   ABERTA: "Aberta",
@@ -51,18 +52,32 @@ export default function ViewMovimentacaoFinanceira({
     [baixa, setBaixa] = useState<ContaDetalhe | null>(null);
   const [preparandoNotificacao, setPreparandoNotificacao] = useState(false),
     [sucessoNotificacao, setSucessoNotificacao] = useState("");
+  const [resumo, setResumo] = useState<{
+    conta: ContaDetalhe | null;
+    carregando: boolean;
+    id: number;
+    x: number;
+    y: number;
+  } | null>(null);
+  const cacheResumos = useRef(new Map<number, ContaDetalhe>());
+  const resumoAtual = useRef<number | null>(null);
   const [descricaoFiltro, setDescricaoFiltro] = useState(""),
     [valorFiltro, setValorFiltro] = useState(""),
     [situacaoFiltro, setSituacaoFiltro] = useState("ABERTA"),
     [dataInicialFiltro, setDataInicialFiltro] = useState(inicioMesAtual),
     [dataFinalFiltro, setDataFinalFiltro] = useState(fimMesAtual);
   async function carregar() {
-    if (dataInicialFiltro && dataFinalFiltro && dataFinalFiltro < dataInicialFiltro) {
+    if (
+      dataInicialFiltro &&
+      dataFinalFiltro &&
+      dataFinalFiltro < dataInicialFiltro
+    ) {
       setErro("A data final não pode ser anterior à data inicial.");
       return;
     }
     try {
       setContas(await listarContas(dataInicialFiltro, dataFinalFiltro));
+      cacheResumos.current.clear();
       setErro("");
     } catch (e) {
       setErro(e instanceof Error ? e.message : "Erro ao carregar.");
@@ -71,6 +86,39 @@ export default function ViewMovimentacaoFinanceira({
   useEffect(() => {
     carregar();
   }, [dataInicialFiltro, dataFinalFiltro]);
+  async function exibirResumo(conta: ContaResumo, x: number, y: number) {
+    resumoAtual.current = conta.id;
+    const posicao = {
+      x: Math.max(8, Math.min(x + 14, window.innerWidth - 374)),
+      y: Math.max(8, Math.min(y + 14, window.innerHeight - 300)),
+    };
+    const armazenada = cacheResumos.current.get(conta.id) ?? null;
+    setResumo({
+      conta: armazenada,
+      carregando: !armazenada,
+      id: conta.id,
+      ...posicao,
+    });
+    if (armazenada) return;
+    try {
+      const detalhe = await buscarConta(conta.id);
+      cacheResumos.current.set(conta.id, detalhe);
+      if (resumoAtual.current === conta.id)
+        setResumo({
+          conta: detalhe,
+          carregando: false,
+          id: conta.id,
+          ...posicao,
+        });
+    } catch {
+      if (resumoAtual.current === conta.id)
+        setResumo({ conta: null, carregando: false, id: conta.id, ...posicao });
+    }
+  }
+  function ocultarResumo() {
+    resumoAtual.current = null;
+    setResumo(null);
+  }
   async function excluir() {
     if (!menu) return;
     if (
@@ -118,17 +166,19 @@ export default function ViewMovimentacaoFinanceira({
     setSucessoNotificacao("");
     const mensagens: string[] = [];
     const erros: string[] = [];
+    const avisos: string[] = [];
     try {
       const resultado = await enviarNotificacaoNtfy();
       if (resultado.enviado) mensagens.push(resultado.mensagem);
+      else avisos.push(resultado.mensagem);
     } catch (e) {
+      const mensagem = e instanceof Error ? e.message : "Erro ao enviar ntfy.";
       if (
-        !(
-          e instanceof Error &&
-          e.message.includes("Associe uma pessoa com ntfy")
-        )
+        !mensagem.includes("Cadastre um tópico ntfy") &&
+        !mensagem.includes("O tópico ntfy está cadastrado")
       )
-        erros.push(e instanceof Error ? e.message : "Erro ao enviar ntfy.");
+        erros.push(mensagem);
+      else avisos.push(mensagem);
     }
     try {
       const whatsapp = await buscarNotificacaoWhatsapp();
@@ -143,16 +193,21 @@ export default function ViewMovimentacaoFinanceira({
         "WhatsApp preparado para os contatos das pessoas vinculadas.",
       );
     } catch (e) {
-      if (
-        !(
-          e instanceof Error &&
-          e.message.includes("Associe uma pessoa com WhatsApp")
-        )
-      )
-        erros.push(e instanceof Error ? e.message : "Erro ao preparar WhatsApp.");
+      const mensagem =
+        e instanceof Error ? e.message : "Erro ao preparar WhatsApp.";
+      if (!mensagem.includes("Associe uma pessoa com WhatsApp"))
+        erros.push(mensagem);
+      else avisos.push(mensagem);
     }
     if (mensagens.length) setSucessoNotificacao(mensagens.join(" "));
-    setErro(erros.length ? erros.join(" ") : !mensagens.length ? "Nenhuma pessoa com canal de notificação foi encontrada." : "");
+    setErro(
+      erros.length
+        ? erros.join(" ")
+        : !mensagens.length
+          ? avisos.join(" ") ||
+            "Nenhuma pessoa com canal de notificação foi encontrada."
+          : "",
+    );
     setPreparandoNotificacao(false);
   }
   const selecionada = menu ? contas.find((c) => c.id === menu.id) : undefined;
@@ -277,9 +332,8 @@ export default function ViewMovimentacaoFinanceira({
             <thead>
               <tr>
                 <th>Descrição</th>
-                <th>Categoria</th>
-                <th>Subcategoria</th>
                 <th>Tipo</th>
+                <th>Parcela</th>
                 <th>Valor</th>
                 <th>Situação</th>
                 <th>Vencimento</th>
@@ -290,6 +344,8 @@ export default function ViewMovimentacaoFinanceira({
               {contasFiltradas.map((c) => (
                 <tr
                   key={c.id}
+                  onMouseEnter={(e) => exibirResumo(c, e.clientX, e.clientY)}
+                  onMouseLeave={ocultarResumo}
                   onDoubleClick={() =>
                     tem("ALTERAR_CONTAS") && !c.possuiBaixas && aoEditar(c.id)
                   }
@@ -299,14 +355,15 @@ export default function ViewMovimentacaoFinanceira({
                   }}
                 >
                   <td>{c.descricao}</td>
-                  <td>{c.categoria ?? "Sem categoria"}</td>
-                  <td>{c.subcategoria ?? "Sem subcategoria"}</td>
                   <td
                     className={
                       c.tipo === "RECEBER" ? "tipo-receber" : "tipo-pagar"
                     }
                   >
                     {c.tipo === "RECEBER" ? "Receber" : "Pagar"}
+                  </td>
+                  <td>
+                    {c.proximaParcela}/{c.totalParcelas}
                   </td>
                   <td className="valor-conta">{moeda(c.valorTotal)}</td>
                   <td>
@@ -316,17 +373,17 @@ export default function ViewMovimentacaoFinanceira({
                       {rotuloSituacao[c.situacao]}
                     </span>
                   </td>
-                  <td>{new Date(`${c.dataVencimento}T12:00:00`).toLocaleDateString("pt-BR")}</td>
                   <td>
-                    {c.baixadaEm
-                      ? new Date(c.baixadaEm).toLocaleString("pt-BR")
-                      : "—"}
+                    {new Date(
+                      `${c.dataVencimento}T12:00:00`,
+                    ).toLocaleDateString("pt-BR")}
                   </td>
+                  <td>{c.baixadaEm ? formatarDataHora(c.baixadaEm) : "—"}</td>
                 </tr>
               ))}
               {!contasFiltradas.length && (
                 <tr>
-                  <td colSpan={8} className="lista-vazia">
+                  <td colSpan={7} className="lista-vazia">
                     Nenhuma conta encontrada.
                   </td>
                 </tr>
@@ -334,6 +391,14 @@ export default function ViewMovimentacaoFinanceira({
             </tbody>
           </table>
         </div>
+        {resumo && (
+          <ResumoContaFlutuante
+            conta={resumo.conta}
+            carregando={resumo.carregando}
+            x={resumo.x}
+            y={resumo.y}
+          />
+        )}
         {menu && (
           <>
             <button
@@ -388,6 +453,76 @@ export default function ViewMovimentacaoFinanceira({
   );
 }
 
+function ResumoContaFlutuante({
+  conta,
+  carregando,
+  x,
+  y,
+}: {
+  conta: ContaDetalhe | null;
+  carregando: boolean;
+  x: number;
+  y: number;
+}) {
+  if (carregando)
+    return (
+      <aside className="resumo-conta-flutuante" style={{ left: x, top: y }}>
+        Carregando resumo...
+      </aside>
+    );
+  if (!conta)
+    return (
+      <aside className="resumo-conta-flutuante" style={{ left: x, top: y }}>
+        Não foi possível carregar o resumo.
+      </aside>
+    );
+
+  const baixadas = conta.parcelas.filter((p) => p.situacao !== "PENDENTE");
+  const pendentes = conta.parcelas.filter((p) => p.situacao === "PENDENTE");
+  const numeros = (parcelas: ContaDetalhe["parcelas"]) =>
+    parcelas.map((p) => p.numero).join(", ");
+
+  return (
+    <aside
+      className="resumo-conta-flutuante"
+      style={{ left: x, top: y }}
+      role="tooltip"
+    >
+      <strong>{conta.descricao}</strong>
+      <dl>
+        <div>
+          <dt>Tipo</dt>
+          <dd>{conta.tipo === "PAGAR" ? "Pagar" : "Receber"}</dd>
+        </div>
+        <div>
+          <dt>Valor total</dt>
+          <dd>{moeda(conta.valorTotal)}</dd>
+        </div>
+        <div>
+          <dt>Situação</dt>
+          <dd>{rotuloSituacao[conta.situacao]}</dd>
+        </div>
+        <div>
+          <dt>Parcelas</dt>
+          <dd>{conta.parcelas.length}</dd>
+        </div>
+      </dl>
+      {conta.parcelas.length > 1 && (
+        <div className="resumo-situacao-parcelas">
+          <p className="parcelas-baixadas">
+            <b>Baixadas ({baixadas.length})</b>
+            <span>{baixadas.length ? numeros(baixadas) : "Nenhuma"}</span>
+          </p>
+          <p className="parcelas-pendentes">
+            <b>Pendentes ({pendentes.length})</b>
+            <span>{pendentes.length ? numeros(pendentes) : "Nenhuma"}</span>
+          </p>
+        </div>
+      )}
+    </aside>
+  );
+}
+
 function IconeNotificacao() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -405,7 +540,9 @@ function DialogBaixa({
   fechar: () => void;
   concluir: () => Promise<void>;
 }) {
-  const [pagamento, setPagamento] = useState<"TOTAL" | "PARCIAL">("TOTAL"),
+  const [pagamento, setPagamento] = useState<"TOTAL" | "PARCIAL">(
+      conta.situacao === "PARCELADA" ? "PARCIAL" : "TOTAL",
+    ),
     [parcela, setParcela] = useState(""),
     [observacao, setObservacao] = useState(""),
     [erro, setErro] = useState(""),
@@ -515,53 +652,51 @@ function DialogBaixa({
                           : "Pendente"}
                     </span>
                   </td>
-                  <td>
-                    {p.baixadaEm
-                      ? new Date(p.baixadaEm).toLocaleString("pt-BR")
-                      : "—"}
-                  </td>
+                  <td>{p.baixadaEm ? formatarDataHora(p.baixadaEm) : "—"}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
         {conta.parcelas.length > 1 && (
-          <label className="rotulo-campo">
-            Pagamento
-            <select
-              className="campo-formulario"
-              value={pagamento}
-              onChange={(e) => {
-                setPagamento(e.target.value as "TOTAL" | "PARCIAL");
-                setParcela("");
-              }}
-            >
-              <option value="TOTAL">Total</option>
-              <option value="PARCIAL">Parcial</option>
-            </select>
-          </label>
-        )}
-        {pagamento === "PARCIAL" && (
-          <label className="rotulo-campo">
-            Parcela
-            <select
-              className="campo-formulario"
-              value={parcela}
-              onChange={(e) => setParcela(e.target.value)}
-              required
-            >
-              <option value="">Selecione uma parcela</option>
-              {pendentes.map((p) => (
-                <option key={p.numero} value={p.numero}>
-                  {p.numero}/{conta.parcelas.length} — {moeda(p.valor)} —
-                  vencimento{" "}
-                  {new Date(`${p.dataVencimento}T12:00:00`).toLocaleDateString(
-                    "pt-BR",
-                  )}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div className="grade-pagamento-parcela">
+            <label className="rotulo-campo">
+              Pagamento
+              <select
+                className="campo-formulario"
+                value={pagamento}
+                onChange={(e) => {
+                  setPagamento(e.target.value as "TOTAL" | "PARCIAL");
+                  setParcela("");
+                }}
+              >
+                <option value="TOTAL">Total</option>
+                <option value="PARCIAL">Parcial</option>
+              </select>
+            </label>
+            {pagamento === "PARCIAL" && (
+              <label className="rotulo-campo">
+                Parcela
+                <select
+                  className="campo-formulario"
+                  value={parcela}
+                  onChange={(e) => setParcela(e.target.value)}
+                  required
+                >
+                  <option value="">Selecione uma parcela</option>
+                  {pendentes.map((p) => (
+                    <option key={p.numero} value={p.numero}>
+                      {p.numero}/{conta.parcelas.length} — {moeda(p.valor)} —
+                      vencimento{" "}
+                      {new Date(
+                        `${p.dataVencimento}T12:00:00`,
+                      ).toLocaleDateString("pt-BR")}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+          </div>
         )}
         <label className="rotulo-campo">
           Observações

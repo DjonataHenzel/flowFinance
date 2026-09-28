@@ -78,5 +78,6 @@ public class SubCategoriaController {
     }
 
     public record SubCategoriaRequest(@NotBlank @Size(max = 100) String nome,
-            @Size(max = 255) String descricao, @NotNull @Positive Long categoriaId) {}
+            @Size(max = 255) String descricao, @NotNull @Positive Long categoriaId) {
+    }
 }

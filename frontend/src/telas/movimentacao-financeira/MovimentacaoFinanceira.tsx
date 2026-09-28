@@ -10,6 +10,7 @@ import {
   listarCategorias,
   listarSubCategorias,
 } from "../../api";
+import { formatarDataHora } from "../../formatadores";
 import type {
   AnexoConta,
   AnexoNovo,
@@ -497,7 +498,7 @@ export default function MovimentacaoFinanceira({
                 required
               >
                 <option value="">Selecione uma categoria</option>
-                {categorias.map((c) => (
+                {categorias.filter((c) => c.tipoUtilizacao === "CONTAS").map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.nome}
                   </option>
@@ -761,7 +762,7 @@ function TabelaParcelas({
                 </span>
                 {p.baixadaEm && (
                   <small className="data-baixa-parcela">
-                    {new Date(p.baixadaEm).toLocaleString("pt-BR")}
+                    {formatarDataHora(p.baixadaEm)}
                   </small>
                 )}
               </td>

@@ -9,9 +9,13 @@ interface PropriedadesLogin {
 const CHAVE_USUARIO = "flowfinance.usuario";
 
 export default function Login({ aoAutenticar }: PropriedadesLogin) {
-  const [usuario, setUsuario] = useState(() => localStorage.getItem(CHAVE_USUARIO) ?? "");
+  const [usuario, setUsuario] = useState(
+    () => localStorage.getItem(CHAVE_USUARIO) ?? "",
+  );
   const [senha, setSenha] = useState("");
-  const [lembrar, setLembrar] = useState(() => Boolean(localStorage.getItem(CHAVE_USUARIO)));
+  const [lembrar, setLembrar] = useState(() =>
+    Boolean(localStorage.getItem(CHAVE_USUARIO)),
+  );
   const [mensagemErro, setMensagemErro] = useState("");
   const [carregando, setCarregando] = useState(false);
 

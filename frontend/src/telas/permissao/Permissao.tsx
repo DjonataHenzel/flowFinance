@@ -3,7 +3,7 @@ import { alterarPapel, cadastrarPapel, listarFuncionalidades } from "../../api";
 import type { Funcionalidade, PapelDetalhe } from "../../api";
 
 const rotulos: Record<Funcionalidade, string> = {
-  VISUALIZAR_DASHBOARD: "Visualizar",
+  VISUALIZAR_DASHBOARD: "Visualizar dashboard",
   CONSULTAR_CONTAS: "Consultar",
   CADASTRAR_CONTAS: "Cadastrar",
   ALTERAR_CONTAS: "Alterar",
@@ -38,10 +38,10 @@ const rotulos: Record<Funcionalidade, string> = {
   EXCLUIR_COMPROMISSOS: "Excluir",
 };
 const grupos: { titulo: string; funcoes: Funcionalidade[] }[] = [
-  { titulo: "Geral", funcoes: ["VISUALIZAR_DASHBOARD"] },
   {
     titulo: "Contas",
     funcoes: [
+      "VISUALIZAR_DASHBOARD",
       "CONSULTAR_CONTAS",
       "CADASTRAR_CONTAS",
       "ALTERAR_CONTAS",
@@ -121,10 +121,22 @@ export default function Permissao({
   }, [registro]);
   const todas =
     disponiveis.length > 0 && disponiveis.every((f) => habilitadas.has(f));
+  const configuradas = new Set(grupos.flatMap((grupo) => grupo.funcoes));
+  const outras = disponiveis.filter((f) => !configuradas.has(f));
+  const gruposExibidos = outras.length
+    ? [...grupos, { titulo: "Outras funções", funcoes: outras }]
+    : grupos;
   function alternar(f: Funcionalidade) {
     setHabilitadas((atuais) => {
       const novas = new Set(atuais);
       novas.has(f) ? novas.delete(f) : novas.add(f);
+      return novas;
+    });
+  }
+  function alternarGrupo(funcoes: Funcionalidade[], habilitar: boolean) {
+    setHabilitadas((atuais) => {
+      const novas = new Set(atuais);
+      funcoes.forEach((f) => habilitar ? novas.add(f) : novas.delete(f));
       return novas;
     });
   }
@@ -139,20 +151,20 @@ export default function Permissao({
         : await cadastrarPapel(nome, descricao, ativo, funcoes);
       aoSalvar();
     } catch (f) {
-      setErro(f instanceof Error ? f.message : "Erro ao salvar o papel.");
+      setErro(f instanceof Error ? f.message : "Erro ao salvar a permissão.");
     } finally {
       setSalvando(false);
     }
   }
   return (
     <form className="painel formulario-permissao" onSubmit={salvar}>
-      <h1>{registro ? "Alterar papel" : "Cadastrar papel"}</h1>
+      <h1>{registro ? "Alterar permissão" : "Cadastrar permissão"}</h1>
       <p className="subtitulo">
-        Defina o papel e as funções que ele poderá utilizar no sistema.
+        Defina a permissão e as funções que poderão ser utilizadas no sistema.
       </p>
-      <div className="grade-baixa">
+      <div className="grade-dados-papel">
         <label className="rotulo-campo">
-          Nome do papel *
+          Nome da permissão *
           <input
             className="campo-formulario"
             value={nome}
@@ -161,27 +173,9 @@ export default function Permissao({
             onChange={(e) => setNome(e.target.value)}
           />
         </label>
-        <label className="rotulo-campo">
-          Situação
-          <select
-            className="campo-formulario"
-            value={ativo ? "ATIVO" : "INATIVO"}
-            onChange={(e) => setAtivo(e.target.value === "ATIVO")}
-          >
-            <option value="ATIVO">Ativo</option>
-            <option value="INATIVO">Inativo</option>
-          </select>
-        </label>
+        <label className="rotulo-campo">Descrição<input className="campo-formulario" value={descricao} maxLength={255} onChange={(e) => setDescricao(e.target.value)}/></label>
+        <label className="rotulo-campo">Situação<select className="campo-formulario" value={ativo ? "ATIVO" : "INATIVO"} onChange={(e) => setAtivo(e.target.value === "ATIVO")}><option value="ATIVO">Ativo</option><option value="INATIVO">Inativo</option></select></label>
       </div>
-      <label className="rotulo-campo">
-        Descrição
-        <textarea
-          className="campo-formulario campo-observacoes"
-          value={descricao}
-          maxLength={255}
-          onChange={(e) => setDescricao(e.target.value)}
-        />
-      </label>
       <section className="secao-funcoes">
         <div className="cabecalho-funcoes">
           <div>
@@ -202,13 +196,15 @@ export default function Permissao({
           </label>
         </div>
         <div className="grupos-funcoes">
-          {grupos.map((grupo) => {
+          {gruposExibidos.map((grupo) => {
             const funcoes = grupo.funcoes.filter((f) =>
               disponiveis.includes(f),
             );
+            if (!funcoes.length) return null;
+            const grupoCompleto=funcoes.every((f)=>habilitadas.has(f));
             return (
-              <section className="grupo-funcao" key={grupo.titulo}>
-                <h3>{grupo.titulo}</h3>
+              <section className={`grupo-funcao ${grupo.titulo === "Contas" ? "grupo-funcao-amplo" : ""}`} key={grupo.titulo}>
+                <div className="titulo-grupo-funcao"><h3>{grupo.titulo}</h3><label title={`Habilitar todas as funções de ${grupo.titulo}`}><input type="checkbox" checked={grupoCompleto} onChange={(e)=>alternarGrupo(funcoes,e.target.checked)}/><span>{funcoes.filter((f)=>habilitadas.has(f)).length}/{funcoes.length}</span></label></div>
                 <div className="grade-funcoes">
                   {funcoes.map((f) => (
                     <label

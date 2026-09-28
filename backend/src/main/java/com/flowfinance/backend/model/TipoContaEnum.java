@@ -1,3 +1,5 @@
 package com.flowfinance.backend.model;
 
-public enum TipoContaEnum { RECEBER, PAGAR }
+public enum TipoContaEnum {
+    RECEBER, PAGAR
+}
