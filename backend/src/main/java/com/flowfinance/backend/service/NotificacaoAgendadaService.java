@@ -35,7 +35,7 @@ public class NotificacaoAgendadaService {
                   JOIN contas c ON c.id=cp.conta_id
                   JOIN parcelas_contas pc ON pc.conta_id=c.id
                  WHERE p.canal_preferencial='NTFY' AND c.tipo='PAGAR'
-                   AND pc.situacao='PENDENTE' AND pc.data_vencimento<=?
+                   AND pc.situacao='PENDENTE' AND pc.data_vencimento=?
                    AND NOT EXISTS(SELECT 1 FROM historico_notificacoes_contas_pessoa h
                                    WHERE h.pessoa_id=p.id AND h.data_referencia=? AND h.canal='NTFY')
                 """, (r, n) -> new PessoaAgendada(r.getLong(1), r.getString(2)), hoje, hoje);

@@ -65,11 +65,32 @@ public class DashboardService {
         return new ResumoFinanceiro(periodo, receitas, despesas, receitas.subtract(despesas), categorias);
     }
 
+    public List<ResumoMensal> buscarSerieMensal(LocalDate dataInicio, LocalDate dataFim, String usuario) {
+        if (dataFim.isBefore(dataInicio))
+            throw new IllegalArgumentException("A data final não pode ser anterior à data inicial.");
+        return jdbc.query("""
+                SELECT TO_CHAR(DATE_TRUNC('month', COALESCE(CAST(p.baixada_em AS DATE), p.data_vencimento)), 'YYYY-MM'),
+                       COALESCE(SUM(p.valor) FILTER (WHERE c.tipo='RECEBER'), 0),
+                       COALESCE(SUM(p.valor) FILTER (WHERE c.tipo='PAGAR'), 0)
+                  FROM parcelas_contas p
+                  JOIN contas c ON c.id=p.conta_id
+                  JOIN usuario u ON u.id=c.usuario_cadastro
+                 WHERE COALESCE(CAST(p.baixada_em AS DATE), p.data_vencimento) BETWEEN ? AND ?
+                   AND (u.usuario=? OR (SELECT visualizar_cadastros_todos_usuarios FROM usuario WHERE usuario=?))
+                 GROUP BY DATE_TRUNC('month', COALESCE(CAST(p.baixada_em AS DATE), p.data_vencimento))
+                 ORDER BY DATE_TRUNC('month', COALESCE(CAST(p.baixada_em AS DATE), p.data_vencimento))
+                """, (r, n) -> new ResumoMensal(r.getString(1), r.getBigDecimal(2), r.getBigDecimal(3)),
+                dataInicio, dataFim, usuario, usuario);
+    }
+
     private record Totais(BigDecimal receitas, BigDecimal despesas) {
     }
 
     public record ResumoCategoria(String categoria, String subcategoria, BigDecimal receitas,
             BigDecimal despesas, int movimentacoes) {
+    }
+
+    public record ResumoMensal(String mes, BigDecimal receitas, BigDecimal despesas) {
     }
 
     public record ResumoFinanceiro(String month, BigDecimal totalIncome, BigDecimal totalExpenses,

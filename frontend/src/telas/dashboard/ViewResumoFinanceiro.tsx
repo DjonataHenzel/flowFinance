@@ -1,75 +1,388 @@
-import {FormEvent,useEffect,useState} from 'react';
-import {buscarResumoFinanceiro} from '../../api';
-import type {SituacaoContaEnum} from '../../api';
-import type {ResumoCategoria,ResumoFinanceiro as DadosResumo} from '../../types';
+import { FormEvent, useEffect, useState } from "react";
+import { buscarResumoFinanceiro } from "../../api";
+import type { SituacaoContaEnum } from "../../api";
+import type {
+  ResumoCategoria,
+  ResumoFinanceiro as DadosResumo,
+} from "../../types";
 
-function dataIso(data:Date){return data.toLocaleDateString('sv-SE')}
-function periodoInicial(){const hoje=new Date();return dataIso(new Date(hoje.getFullYear(),hoje.getMonth(),1))}
-function periodoFinal(){const hoje=new Date();return dataIso(new Date(hoje.getFullYear(),hoje.getMonth()+1,0))}
-
-export default function ViewResumoFinanceiro(){
-  const[dataInicio,setDataInicio]=useState(periodoInicial),[dataFim,setDataFim]=useState(periodoFinal),[situacao,setSituacao]=useState<SituacaoContaEnum|''>(''),[resumo,setResumo]=useState<DadosResumo|null>(null),[erro,setErro]=useState(''),[carregando,setCarregando]=useState(false);
-  async function consultar(){setErro('');setCarregando(true);try{setResumo(await buscarResumoFinanceiro(dataInicio,dataFim,situacao||undefined))}catch(e){setErro(e instanceof Error?e.message:'Não foi possível consultar o resumo.')}finally{setCarregando(false)}}
-  useEffect(()=>{consultar()},[]);
-  function enviar(evento:FormEvent){evento.preventDefault();if(dataFim<dataInicio){setErro('A data final não pode ser anterior à data inicial.');return}consultar()}
-  return <section className="resumo-financeiro">
-    <div className="cabecalho-painel"><div><h1>Resumo financeiro</h1><p className="subtitulo">Totais calculados pela data de pagamento das parcelas baixadas e pelo vencimento das pendentes.</p></div></div>
-    <form className="filtros-resumo" onSubmit={enviar}>
-      <label className="rotulo-campo">Data inicial<input className="campo-formulario" type="date" value={dataInicio} onChange={e=>setDataInicio(e.target.value)} required/></label>
-      <label className="rotulo-campo">Data final<input className="campo-formulario" type="date" value={dataFim} onChange={e=>setDataFim(e.target.value)} required/></label>
-      <label className="rotulo-campo">Situação<select className="campo-formulario" value={situacao} onChange={e=>setSituacao(e.target.value as SituacaoContaEnum|'')}><option value="">Todas</option><option value="ABERTA">Aberta</option><option value="PARCELADA">Parcelada</option><option value="PAGA">Paga</option><option value="RECEBIDA">Recebida</option></select></label>
-      <button className="botao-adicionar" type="submit" disabled={carregando}>{carregando?'Consultando...':'Consultar'}</button>
-    </form>
-    {erro&&<p className="mensagem-erro">{erro}</p>}
-    {resumo&&<><p className="periodo-resumo">Período: <strong>{resumo.month}</strong></p><div className="grade-resumo">
-      <Cartao titulo="Receitas" valor={resumo.totalIncome} cor="verde"/>
-      <Cartao titulo="Despesas" valor={resumo.totalExpenses} cor="vermelho"/>
-      <Cartao titulo="Saldo" valor={resumo.balance} cor={resumo.balance>=0?'verde':'vermelho'}/>
-    </div><div className="grade-graficos"><GraficoComparativo receitas={resumo.totalIncome} despesas={resumo.totalExpenses}/><GraficoDistribuicao receitas={resumo.totalIncome} despesas={resumo.totalExpenses}/></div><GraficoCategorias dados={resumo.categorias??[]}/><RelatorioCategorias dados={resumo.categorias??[]}/></>}
-  </section>
+function dataIso(data: Date) {
+  return data.toLocaleDateString("sv-SE");
+}
+function periodoInicial() {
+  const hoje = new Date();
+  return dataIso(new Date(hoje.getFullYear(), hoje.getMonth(), 1));
+}
+function periodoFinal() {
+  const hoje = new Date();
+  return dataIso(new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0));
 }
 
-function Cartao({titulo,valor,cor}:{titulo:string;valor:number;cor:'verde'|'vermelho'}){return <article className={`cartao-resumo cartao-${cor}`}><p>{titulo}</p><strong className={`texto-${cor}`}>{valor.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</strong></article>}
-
-function GraficoComparativo({receitas,despesas}:{receitas:number;despesas:number}){
-  const maior=Math.max(receitas,despesas),altura=(valor:number)=>maior===0?0:Math.max(4,(valor/maior)*100),moeda=(valor:number)=>valor.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
-  return <section className="grafico-resumo" aria-label={`Comparação: receitas ${moeda(receitas)} e despesas ${moeda(despesas)}`}>
-    <div className="cabecalho-grafico"><div><h2>Receitas x despesas</h2><p>Comparativo do período selecionado</p></div><div className="legenda-grafico"><span className="legenda-receita">Receitas</span><span className="legenda-despesa">Despesas</span></div></div>
-    <div className="area-grafico">
-      <div className="linhas-grafico"><i/><i/><i/><i/></div>
-      <div className="coluna-grafico"><strong className="texto-verde">{moeda(receitas)}</strong><div className="trilho-barra"><div className="barra-grafico barra-receita" style={{height:`${altura(receitas)}%`}}/></div><span>Receitas</span></div>
-      <div className="coluna-grafico"><strong className="texto-vermelho">{moeda(despesas)}</strong><div className="trilho-barra"><div className="barra-grafico barra-despesa" style={{height:`${altura(despesas)}%`}}/></div><span>Despesas</span></div>
-      {maior===0&&<p className="grafico-sem-dados">Nenhum valor encontrado neste período.</p>}
-    </div>
-  </section>
-}
-
-function GraficoDistribuicao({receitas,despesas}:{receitas:number;despesas:number}){
-  const total=receitas+despesas,percentualReceitas=total===0?0:(receitas/total)*100,moeda=(valor:number)=>valor.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
-  const fundo=total===0?'conic-gradient(#27415f 0 100%)':`conic-gradient(#4ade80 0 ${percentualReceitas}%,#fb7185 ${percentualReceitas}% 100%)`;
-  return <section className="grafico-resumo grafico-distribuicao" aria-label={`Distribuição financeira: ${percentualReceitas.toFixed(1)}% receitas e ${(100-percentualReceitas).toFixed(1)}% despesas`}>
-    <div className="cabecalho-grafico"><div><h2>Distribuição financeira</h2><p>Participação no total movimentado</p></div></div>
-    <div className="conteudo-rosca">
-      <div className="grafico-rosca" style={{background:fundo}}><div className="centro-rosca"><strong>{total===0?'0%':`${percentualReceitas.toFixed(0)}%`}</strong><span>receitas</span></div></div>
-      <div className="detalhes-rosca">
-        <div className="detalhe-receita"><span>Receitas</span><strong>{moeda(receitas)}</strong><small>{total===0?'0,0':percentualReceitas.toFixed(1).replace('.',',')}%</small></div>
-        <div className="detalhe-despesa"><span>Despesas</span><strong>{moeda(despesas)}</strong><small>{total===0?'0,0':(100-percentualReceitas).toFixed(1).replace('.',',')}%</small></div>
+export default function ViewResumoFinanceiro() {
+  const [dataInicio, setDataInicio] = useState(periodoInicial),
+    [dataFim, setDataFim] = useState(periodoFinal),
+    [situacao, setSituacao] = useState<SituacaoContaEnum | "">(""),
+    [resumo, setResumo] = useState<DadosResumo | null>(null),
+    [erro, setErro] = useState(""),
+    [carregando, setCarregando] = useState(false);
+  async function consultar() {
+    setErro("");
+    setCarregando(true);
+    try {
+      setResumo(
+        await buscarResumoFinanceiro(
+          dataInicio,
+          dataFim,
+          situacao || undefined,
+        ),
+      );
+    } catch (e) {
+      setErro(
+        e instanceof Error ? e.message : "Não foi possível consultar o resumo.",
+      );
+    } finally {
+      setCarregando(false);
+    }
+  }
+  useEffect(() => {
+    consultar();
+  }, []);
+  function enviar(evento: FormEvent) {
+    evento.preventDefault();
+    if (dataFim < dataInicio) {
+      setErro("A data final não pode ser anterior à data inicial.");
+      return;
+    }
+    consultar();
+  }
+  return (
+    <section className="resumo-financeiro">
+      <div className="cabecalho-painel">
+        <div>
+          <h1>Resumo financeiro</h1>
+          <p className="subtitulo">
+            Totais calculados pela data de pagamento das parcelas baixadas e
+            pelo vencimento das pendentes.
+          </p>
+        </div>
       </div>
-    </div>
-  </section>
+      <form className="filtros-resumo" onSubmit={enviar}>
+        <label className="rotulo-campo">
+          Data inicial
+          <input
+            className="campo-formulario"
+            type="date"
+            value={dataInicio}
+            onChange={(e) => setDataInicio(e.target.value)}
+            required
+          />
+        </label>
+        <label className="rotulo-campo">
+          Data final
+          <input
+            className="campo-formulario"
+            type="date"
+            value={dataFim}
+            onChange={(e) => setDataFim(e.target.value)}
+            required
+          />
+        </label>
+        <label className="rotulo-campo">
+          Situação
+          <select
+            className="campo-formulario"
+            value={situacao}
+            onChange={(e) =>
+              setSituacao(e.target.value as SituacaoContaEnum | "")
+            }
+          >
+            <option value="">Todas</option>
+            <option value="ABERTA">Aberta</option>
+            <option value="PARCELADA">Parcelada</option>
+            <option value="PAGA">Paga</option>
+            <option value="RECEBIDA">Recebida</option>
+          </select>
+        </label>
+        <button className="botao-adicionar" type="submit" disabled={carregando}>
+          {carregando ? "Consultando..." : "Consultar"}
+        </button>
+      </form>
+      {erro && <p className="mensagem-erro">{erro}</p>}
+      {resumo && (
+        <>
+          <p className="periodo-resumo">
+            Período: <strong>{resumo.month}</strong>
+          </p>
+          <div className="grade-resumo">
+            <Cartao titulo="Receitas" valor={resumo.totalIncome} cor="verde" />
+            <Cartao
+              titulo="Despesas"
+              valor={resumo.totalExpenses}
+              cor="vermelho"
+            />
+            <Cartao
+              titulo="Saldo"
+              valor={resumo.balance}
+              cor={resumo.balance >= 0 ? "verde" : "vermelho"}
+            />
+          </div>
+          <div className="grade-graficos">
+            <GraficoComparativo
+              receitas={resumo.totalIncome}
+              despesas={resumo.totalExpenses}
+            />
+            <GraficoDistribuicao
+              receitas={resumo.totalIncome}
+              despesas={resumo.totalExpenses}
+            />
+          </div>
+          <GraficoCategorias dados={resumo.categorias ?? []} />
+        </>
+      )}
+    </section>
+  );
 }
 
-const moeda=(valor:number)=>valor.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
-
-function GraficoCategorias({dados}:{dados:ResumoCategoria[]}){
-  const maior=Math.max(0,...dados.flatMap(x=>[x.receitas,x.despesas]));
-  return <section className="grafico-resumo grafico-categorias">
-    <div className="cabecalho-grafico"><div><h2>Resumo por categoria e subcategoria</h2><p>Comparativo das receitas e despesas no período</p></div><div className="legenda-grafico"><span className="legenda-receita">Receitas</span><span className="legenda-despesa">Despesas</span></div></div>
-    <div className="linhas-categorias">{dados.map((x,i)=><article key={`${x.categoria}-${x.subcategoria}-${i}`}><div className="rotulo-categoria-grafico"><strong>{x.categoria}</strong><small>{x.subcategoria}</small></div><div className="barras-categoria"><div><i className="barra-categoria-receita" style={{width:maior?`${(x.receitas/maior)*100}%`:'0%'}}/><span>{moeda(x.receitas)}</span></div><div><i className="barra-categoria-despesa" style={{width:maior?`${(x.despesas/maior)*100}%`:'0%'}}/><span>{moeda(x.despesas)}</span></div></div></article>)}</div>
-    {!dados.length&&<p className="lista-vazia">Nenhuma movimentação categorizada no período.</p>}
-  </section>
+function Cartao({
+  titulo,
+  valor,
+  cor,
+}: {
+  titulo: string;
+  valor: number;
+  cor: "verde" | "vermelho";
+}) {
+  return (
+    <article className={`cartao-resumo cartao-${cor}`}>
+      <p>{titulo}</p>
+      <strong className={`texto-${cor}`}>
+        {valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+      </strong>
+    </article>
+  );
 }
 
-function RelatorioCategorias({dados}:{dados:ResumoCategoria[]}){
-  return <section className="relatorio-resumo-categorias"><div><h2>Detalhamento por categoria e subcategoria</h2><p>Valores que mais movimentaram o período selecionado.</p></div><div className="tabela-responsiva"><table className="tabela-usuarios tabela-relatorio"><thead><tr><th>Categoria</th><th>Subcategoria</th><th>Movimentações</th><th>Receitas</th><th>Despesas</th><th>Saldo</th></tr></thead><tbody>{dados.map((x,i)=><tr key={`${x.categoria}-${x.subcategoria}-${i}`}><td>{x.categoria}</td><td>{x.subcategoria}</td><td>{x.movimentacoes}</td><td className="texto-verde">{moeda(x.receitas)}</td><td className="texto-vermelho">{moeda(x.despesas)}</td><td className={x.receitas-x.despesas>=0?'texto-verde':'texto-vermelho'}>{moeda(x.receitas-x.despesas)}</td></tr>)}{!dados.length&&<tr><td colSpan={6} className="lista-vazia">Nenhuma movimentação encontrada.</td></tr>}</tbody></table></div></section>
+function GraficoComparativo({
+  receitas,
+  despesas,
+}: {
+  receitas: number;
+  despesas: number;
+}) {
+  const maior = Math.max(receitas, despesas),
+    altura = (valor: number) =>
+      maior === 0 ? 0 : Math.max(4, (valor / maior) * 100),
+    moeda = (valor: number) =>
+      valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  return (
+    <section
+      className="grafico-resumo"
+      aria-label={`Comparação: receitas ${moeda(receitas)} e despesas ${moeda(despesas)}`}
+    >
+      <div className="cabecalho-grafico">
+        <div>
+          <h2>Receitas x despesas</h2>
+          <p>Comparativo do período selecionado</p>
+        </div>
+        <div className="legenda-grafico">
+          <span className="legenda-receita">Receitas</span>
+          <span className="legenda-despesa">Despesas</span>
+        </div>
+      </div>
+      <div className="area-grafico">
+        <div className="linhas-grafico">
+          <i />
+          <i />
+          <i />
+          <i />
+        </div>
+        <div className="coluna-grafico">
+          <strong className="texto-verde">{moeda(receitas)}</strong>
+          <div className="trilho-barra">
+            <div
+              className="barra-grafico barra-receita"
+              style={{ height: `${altura(receitas)}%` }}
+            />
+          </div>
+          <span>Receitas</span>
+        </div>
+        <div className="coluna-grafico">
+          <strong className="texto-vermelho">{moeda(despesas)}</strong>
+          <div className="trilho-barra">
+            <div
+              className="barra-grafico barra-despesa"
+              style={{ height: `${altura(despesas)}%` }}
+            />
+          </div>
+          <span>Despesas</span>
+        </div>
+        {maior === 0 && (
+          <p className="grafico-sem-dados">
+            Nenhum valor encontrado neste período.
+          </p>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function GraficoDistribuicao({
+  receitas,
+  despesas,
+}: {
+  receitas: number;
+  despesas: number;
+}) {
+  const total = receitas + despesas,
+    percentualReceitas = total === 0 ? 0 : (receitas / total) * 100,
+    moeda = (valor: number) =>
+      valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const fundo =
+    total === 0
+      ? "conic-gradient(#27415f 0 100%)"
+      : `conic-gradient(#4ade80 0 ${percentualReceitas}%,#fb7185 ${percentualReceitas}% 100%)`;
+  return (
+    <section
+      className="grafico-resumo grafico-distribuicao"
+      aria-label={`Distribuição financeira: ${percentualReceitas.toFixed(1)}% receitas e ${(100 - percentualReceitas).toFixed(1)}% despesas`}
+    >
+      <div className="cabecalho-grafico">
+        <div>
+          <h2>Distribuição financeira</h2>
+          <p>Participação no total movimentado</p>
+        </div>
+      </div>
+      <div className="conteudo-rosca">
+        <div className="grafico-rosca" style={{ background: fundo }}>
+          <div className="centro-rosca">
+            <strong>
+              {total === 0 ? "0%" : `${percentualReceitas.toFixed(0)}%`}
+            </strong>
+            <span>receitas</span>
+          </div>
+        </div>
+        <div className="detalhes-rosca">
+          <div className="detalhe-receita">
+            <span>Receitas</span>
+            <strong>{moeda(receitas)}</strong>
+            <small>
+              {total === 0
+                ? "0,0"
+                : percentualReceitas.toFixed(1).replace(".", ",")}
+              %
+            </small>
+          </div>
+          <div className="detalhe-despesa">
+            <span>Despesas</span>
+            <strong>{moeda(despesas)}</strong>
+            <small>
+              {total === 0
+                ? "0,0"
+                : (100 - percentualReceitas).toFixed(1).replace(".", ",")}
+              %
+            </small>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+const moeda = (valor: number) =>
+  valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+function GraficoCategorias({ dados }: { dados: ResumoCategoria[] }) {
+  const maior = Math.max(
+    0,
+    ...dados.flatMap((item) => [item.receitas, item.despesas]),
+  );
+  const mapa = new Map<string, ResumoCategoria[]>();
+  dados.forEach((item) =>
+    mapa.set(item.categoria, [...(mapa.get(item.categoria) ?? []), item]),
+  );
+  const grupos = [...mapa.entries()].sort(([a], [b]) =>
+    a.localeCompare(b, "pt-BR"),
+  );
+
+  return (
+    <section className="grafico-resumo grafico-categorias">
+      <div className="cabecalho-grafico">
+        <div>
+          <h2>Detalhamento por categoria e subcategoria</h2>
+          <p>Receitas, despesas, movimentações e saldo no período</p>
+        </div>
+        <div className="legenda-grafico">
+          <span className="legenda-receita">Receitas</span>
+          <span className="legenda-despesa">Despesas</span>
+        </div>
+      </div>
+      <div className="linhas-categorias">
+        {grupos.map(([categoria, itens]) => (
+          <section className="grupo-categoria-grafico" key={categoria}>
+            <h3 className="cabecalho-categoria-grafico">{categoria}</h3>
+            <div className="itens-categoria-grafico">
+              {itens
+                .sort((a, b) =>
+                  a.subcategoria.localeCompare(b.subcategoria, "pt-BR"),
+                )
+                .map((item) => (
+                  <article key={item.subcategoria}>
+                    <div className="rotulo-categoria-grafico">
+                      <strong>{item.subcategoria}</strong>
+                    </div>
+                    <div className="barras-categoria">
+                      <div>
+                        <i
+                          className="barra-categoria-receita"
+                          style={{
+                            width: maior
+                              ? `${(item.receitas / maior) * 100}%`
+                              : "0%",
+                          }}
+                        />
+                        <span>{moeda(item.receitas)}</span>
+                      </div>
+                      <div>
+                        <i
+                          className="barra-categoria-despesa"
+                          style={{
+                            width: maior
+                              ? `${(item.despesas / maior) * 100}%`
+                              : "0%",
+                          }}
+                        />
+                        <span>{moeda(item.despesas)}</span>
+                      </div>
+                    </div>
+                    <div className="metricas-categoria-grafico">
+                      <div>
+                        <span>Movimentações</span>
+                        <strong>{item.movimentacoes}</strong>
+                      </div>
+                      <div>
+                        <span>Saldo</span>
+                        <strong
+                          className={
+                            item.receitas - item.despesas >= 0
+                              ? "texto-verde"
+                              : "texto-vermelho"
+                          }
+                        >
+                          {moeda(item.receitas - item.despesas)}
+                        </strong>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+            </div>
+          </section>
+        ))}
+      </div>
+      {!dados.length && (
+        <p className="lista-vazia">
+          Nenhuma movimentação categorizada no período.
+        </p>
+      )}
+    </section>
+  );
 }

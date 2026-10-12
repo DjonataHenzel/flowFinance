@@ -40,7 +40,9 @@ public enum MensagemNotificacaoEnum {
 
             adicionarLinks(mensagem, "  Contatos", conta.contatos());
             adicionarLinks(mensagem, "  Anexos", conta.anexos());
-            adicionarLinks(mensagem, "\n\n");
+
+            mensagem.append("\n\n");
+
             valorTotal = valorTotal.add(conta.valor());
         }
 
@@ -77,7 +79,7 @@ public enum MensagemNotificacaoEnum {
     }
 
     public static String montarMensagemContasPendentes(List<ContaNotificacao> contas) {
-        StringBuilder mensagem = new StringBuilder("*Contas vencidas ou vencendo hoje*\n\n");
+        StringBuilder mensagem = new StringBuilder("*Contas vencendo hoje*\n\n");
         BigDecimal valorTotal = BigDecimal.ZERO;
 
         for (ContaNotificacao conta : contas) {
@@ -91,6 +93,8 @@ public enum MensagemNotificacaoEnum {
 
             adicionarLinks(mensagem, "  Contatos", conta.contatos());
             adicionarLinks(mensagem, "  Anexos", conta.anexos());
+
+            mensagem.append("\n\n");
 
             valorTotal = valorTotal.add(conta.valor());
         }

@@ -70,6 +70,9 @@ export default function Compromisso({
     [buscandoCep, setBuscandoCep] = useState(false),
     [erro, setErro] = useState(""),
     [salvando, setSalvando] = useState(false);
+  const subcategoriasDisponiveis = subcategorias.filter(
+    (s) => s.categoriaId === Number(categoriaId),
+  );
   useEffect(() => {
     Promise.all([
       listarPessoas(),
@@ -347,7 +350,7 @@ export default function Compromisso({
               onChange={(e) => selecionarSubcategoria(e.target.value)}
             >
               <option value="">Sem subcategoria</option>
-              {subcategorias.map((s) => (
+              {subcategoriasDisponiveis.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.nome}
                 </option>
@@ -356,7 +359,7 @@ export default function Compromisso({
           </label>
         </div>
       </div>
-      {!categorias.length && (
+      {!categorias.some((c) => c.tipoUtilizacao === "COMPROMISSOS") && (
         <small className="ajuda-campo">
           Cadastre uma categoria em Ferramentas → Categorias.
         </small>

@@ -132,8 +132,9 @@ public class ContaController {
     }
 
     @PatchMapping("/{id}/estornar-baixa")
-    public ResponseEntity<Map<String, Object>> estornarBaixa(@PathVariable long id, HttpSession sessao) {
-        service.estornarBaixa(id, usuario(sessao));
+    public ResponseEntity<Map<String, Object>> estornarBaixa(@PathVariable long id,
+            @RequestParam(required = false) Integer numeroParcela, HttpSession sessao) {
+        service.estornarBaixa(id, numeroParcela, usuario(sessao));
         return ResponseEntity.ok(Map.of("id", id, "message", "Baixa estornada com sucesso"));
     }
 

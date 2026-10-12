@@ -4,6 +4,7 @@ import com.flowfinance.backend.controller.CompromissoController.CompromissoReque
 import com.flowfinance.backend.controller.CompromissoController.AnexoExistenteRequest;
 import com.flowfinance.backend.controller.CompromissoController.ContatoWhatsappRequest;
 import com.flowfinance.backend.model.MensagemNotificacaoEnum;
+import com.flowfinance.backend.model.SituacaoCompromissoEnum;
 import java.net.URI;
 import java.net.http.*;
 import java.time.*;
@@ -160,6 +161,14 @@ public class CompromissoService {
         return jdbc.update("DELETE FROM compromissos WHERE id=?", id) > 0;
     }
 
+    public boolean alterarSituacao(long id, SituacaoCompromissoEnum situacao, String usuario) {
+        if (situacao != SituacaoCompromissoEnum.RESOLVIDO && situacao != SituacaoCompromissoEnum.CONCLUIDO)
+            throw new IllegalArgumentException("A situação deve ser resolvida ou concluída");
+        if (!podeAcessarClassificacao(id, usuario))
+            return false;
+        return jdbc.update("UPDATE compromissos SET situacao=? WHERE id=?", situacao.name(), id) > 0;
+    }
+
     private void validar(CompromissoRequest r, String usuario) {
         if (r.pessoaIds() == null || r.pessoaIds().isEmpty())
             throw new IllegalArgumentException("Selecione ao menos uma pessoa");
@@ -266,8 +275,9 @@ public class CompromissoService {
                 """
                         SELECT DISTINCT ON (c.id,p.id) c.id,p.id,c.data_hora,c.descricao,p.nome,n.topico,cat.nome,sub.nome,c.cep,c.logradouro,c.numero,c.complemento,c.bairro,c.cidade,c.uf
                         FROM compromissos c JOIN compromissos_pessoas_notificacao cp ON cp.compromisso_id=c.id JOIN pessoas p ON p.id=cp.pessoa_id JOIN pessoas_ntfy n ON n.pessoa_id=p.id LEFT JOIN categorias cat ON cat.id=c.categoria_id LEFT JOIN subcategorias sub ON sub.id=c.subcategoria_id
-                        WHERE p.canal_preferencial='NTFY' AND c.situacao IN ('PENDENTE','REAGENDADO')
-                        AND CAST(c.data_hora AS DATE)<=CURRENT_DATE AND c.hora_notificacao<=CURRENT_TIME AND cp.notificado_em IS NULL
+                        WHERE p.canal_preferencial='NTFY' AND c.situacao IN ('PENDENTE','REAGENDADO','NOTIFICADO')
+                        AND CAST(c.data_hora AS DATE)<=CURRENT_DATE AND c.hora_notificacao<=CURRENT_TIME
+                        AND (cp.notificado_em IS NULL OR cp.notificado_em<CURRENT_DATE)
                         ORDER BY c.id,p.id,n.id
                         """,
                 (r, n) -> new Destino(r.getLong(1), r.getLong(2), r.getObject(3, OffsetDateTime.class), r.getString(4),
@@ -290,7 +300,7 @@ public class CompromissoService {
             HttpResponse<String> res = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
             if (res.statusCode() >= 200 && res.statusCode() < 300) {
                 jdbc.update(
-                        "UPDATE compromissos_pessoas_notificacao SET notificado_em=CURRENT_TIMESTAMP WHERE compromisso_id=? AND pessoa_id=? AND notificado_em IS NULL",
+                        "UPDATE compromissos_pessoas_notificacao SET notificado_em=CURRENT_TIMESTAMP WHERE compromisso_id=? AND pessoa_id=?",
                         d.id(), d.pessoaId());
                 concluirSeTodosNotificados(d.id());
             } else {
@@ -311,7 +321,8 @@ public class CompromissoService {
                 "SELECT COUNT(*) FROM compromissos_pessoas_notificacao WHERE compromisso_id=? AND notificado_em IS NULL",
                 Integer.class, compromissoId);
         if (pendentes != null && pendentes == 0)
-            jdbc.update("UPDATE compromissos SET ultima_notificacao=CURRENT_TIMESTAMP,situacao='NOTIFICADO' WHERE id=?",
+            jdbc.update(
+                    "UPDATE compromissos SET ultima_notificacao=CURRENT_TIMESTAMP,situacao='NOTIFICADO' WHERE id=? AND situacao IN ('PENDENTE','REAGENDADO','NOTIFICADO')",
                     compromissoId);
     }
 

@@ -8,7 +8,6 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.sql.ResultSet;
 import java.time.OffsetDateTime;
-import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -37,9 +36,11 @@ class CompromissoServiceNotificacaoTest {
         service.notificarPendentes();
 
         verify(http, times(2)).send(any(HttpRequest.class), anyHandler());
+        verify(jdbc).query(contains("c.situacao IN ('PENDENTE','REAGENDADO','NOTIFICADO')"), any(RowMapper.class));
+        verify(jdbc).query(contains("cp.notificado_em IS NULL OR cp.notificado_em<CURRENT_DATE"), any(RowMapper.class));
         verify(jdbc).update(contains("compromisso_id=? AND pessoa_id=?"), eq(44L), eq(7L));
         verify(jdbc).update(contains("compromisso_id=? AND pessoa_id=?"), eq(44L), eq(8L));
-        verify(jdbc, times(1)).update(contains("situacao='NOTIFICADO'"), eq(44L));
+        verify(jdbc, times(1)).update(contains("situacao IN ('PENDENTE','REAGENDADO','NOTIFICADO')"), eq(44L));
     }
 
     @Test
@@ -59,14 +60,17 @@ class CompromissoServiceNotificacaoTest {
         verify(jdbc, never()).update(contains("situacao='NOTIFICADO'"), anyLong());
     }
 
-    @SuppressWarnings({"rawtypes", "unchecked"})
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     private void prepararDestinos(ResultSet... resultados) {
         when(jdbc.query(anyString(), any(RowMapper.class))).thenAnswer(invocacao -> {
             RowMapper mapper = invocacao.getArgument(1);
             return java.util.stream.IntStream.range(0, resultados.length)
                     .mapToObj(i -> {
-                        try { return mapper.mapRow(resultados[i], i); }
-                        catch (Exception e) { throw new RuntimeException(e); }
+                        try {
+                            return mapper.mapRow(resultados[i], i);
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        }
                     }).toList();
         });
     }

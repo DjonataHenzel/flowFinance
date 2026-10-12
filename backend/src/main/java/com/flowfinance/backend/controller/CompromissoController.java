@@ -88,6 +88,14 @@ public class CompromissoController {
         return ResponseEntity.ok(Map.of("id", id, "message", "Compromisso alterado com sucesso"));
     }
 
+    @PatchMapping("/{id}/situacao")
+    public ResponseEntity<Map<String, Object>> alterarSituacao(@PathVariable long id,
+            @Valid @RequestBody AlterarSituacaoRequest request, HttpSession sessao) {
+        if (!service.alterarSituacao(id, request.situacao(), usuario(sessao)))
+            return ResponseEntity.notFound().build();
+        return ResponseEntity.ok(Map.of("id", id, "message", "Situação do compromisso alterada com sucesso"));
+    }
+
     @PostMapping("/{id}/duplicar")
     public ResponseEntity<Map<String, Object>> duplicar(@PathVariable long id, HttpSession sessao) {
         Long novo = service.duplicar(id, usuario(sessao));
@@ -143,5 +151,8 @@ public class CompromissoController {
 
     public record AnexoExistenteRequest(long id, @NotBlank @Size(max = 255) String descricao) {
 
+    }
+
+    public record AlterarSituacaoRequest(@NotNull SituacaoCompromissoEnum situacao) {
     }
 }

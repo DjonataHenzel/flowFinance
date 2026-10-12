@@ -49,7 +49,11 @@ export default function ViewMovimentacaoFinanceira({
   const [menu, setMenu] = useState<{ id: number; x: number; y: number } | null>(
       null,
     ),
-    [baixa, setBaixa] = useState<ContaDetalhe | null>(null);
+    [baixa, setBaixa] = useState<ContaDetalhe | null>(null),
+    [estornoSelecionado, setEstornoSelecionado] = useState<ContaDetalhe | null>(
+      null,
+    ),
+    [parcelaEstorno, setParcelaEstorno] = useState("");
   const [preparandoNotificacao, setPreparandoNotificacao] = useState(false),
     [sucessoNotificacao, setSucessoNotificacao] = useState("");
   const [resumo, setResumo] = useState<{
@@ -135,21 +139,53 @@ export default function ViewMovimentacaoFinanceira({
       setErro(e instanceof Error ? e.message : "Erro na operação.");
     }
   }
-  async function estornar() {
-    if (
-      !menu ||
-      !confirm(
-        "Confirma o estorno? Todas as parcelas voltarão para pendente e as datas e observações da baixa serão removidas.",
-      )
-    )
-      return;
+  async function concluirEstorno(id: number, numeroParcela?: number) {
     try {
-      await estornarBaixaConta(menu.id);
+      await estornarBaixaConta(id, numeroParcela);
       setMenu(null);
+      setEstornoSelecionado(null);
+      setParcelaEstorno("");
       await carregar();
     } catch (e) {
       setErro(e instanceof Error ? e.message : "Erro ao estornar a baixa.");
     }
+  }
+  async function estornar() {
+    if (!menu || !selecionada) return;
+    const id = menu.id;
+    if (selecionada.totalParcelas > 1) {
+      setMenu(null);
+      try {
+        setEstornoSelecionado(await buscarConta(id));
+        setParcelaEstorno("");
+      } catch (e) {
+        setErro(
+          e instanceof Error ? e.message : "Erro ao carregar as parcelas.",
+        );
+      }
+      return;
+    }
+    if (
+      !confirm(
+        "Confirma o estorno desta conta? A baixa será removida e ela voltará para pendente.",
+      )
+    )
+      return;
+    await concluirEstorno(id);
+  }
+  async function estornarParcelaSelecionada() {
+    if (!estornoSelecionado || !parcelaEstorno) return;
+    const parcela = estornoSelecionado.parcelas.find(
+      (item) => item.numero === Number(parcelaEstorno),
+    );
+    if (!parcela) return;
+    if (
+      !confirm(
+        `Confirma o estorno da parcela ${parcela.numero}/${estornoSelecionado.parcelas.length}, no valor de ${moeda(parcela.valor)}?`,
+      )
+    )
+      return;
+    await concluirEstorno(estornoSelecionado.id, parcela.numero);
   }
   async function abrirBaixa() {
     if (!menu) return;
@@ -220,7 +256,7 @@ export default function ViewMovimentacaoFinanceira({
         c.descricao
           .toLocaleLowerCase("pt-BR")
           .includes(descricaoFiltro.toLocaleLowerCase("pt-BR"))) &&
-      (!valorFiltro || Math.abs(c.valorTotal - Number(valorFiltro)) < 0.005) &&
+      (!valorFiltro || Math.abs(c.valor - Number(valorFiltro)) < 0.005) &&
       (!situacaoFiltro ||
         (situacaoFiltro === "ABERTA"
           ? ["ABERTA", "PARCELADA"].includes(c.situacao)
@@ -234,7 +270,9 @@ export default function ViewMovimentacaoFinanceira({
             <h1>Contas</h1>
             <p className="subtitulo">
               Todas as contas cadastradas.
-              {tem("ALTERAR_CONTAS") ? " Dê dois cliques para alterar." : ""}
+              {tem("ALTERAR_CONTAS") || tem("BAIXAR_RECEBER_CONTAS")
+                ? " Dê dois cliques para abrir a conta."
+                : ""}
             </p>
           </div>
           <div className="acoes-cabecalho">
@@ -335,9 +373,9 @@ export default function ViewMovimentacaoFinanceira({
                 <th>Tipo</th>
                 <th>Parcela</th>
                 <th>Valor</th>
+                <th>Valor total</th>
                 <th>Situação</th>
-                <th>Vencimento</th>
-                <th>Baixa</th>
+                <th>Prox. Vencimento</th>
               </tr>
             </thead>
             <tbody>
@@ -347,7 +385,8 @@ export default function ViewMovimentacaoFinanceira({
                   onMouseEnter={(e) => exibirResumo(c, e.clientX, e.clientY)}
                   onMouseLeave={ocultarResumo}
                   onDoubleClick={() =>
-                    tem("ALTERAR_CONTAS") && !c.possuiBaixas && aoEditar(c.id)
+                    (tem("ALTERAR_CONTAS") || tem("BAIXAR_RECEBER_CONTAS")) &&
+                    aoEditar(c.id)
                   }
                   onContextMenu={(e) => {
                     e.preventDefault();
@@ -365,6 +404,7 @@ export default function ViewMovimentacaoFinanceira({
                   <td>
                     {c.proximaParcela}/{c.totalParcelas}
                   </td>
+                  <td className="valor-conta">{moeda(c.valor)}</td>
                   <td className="valor-conta">{moeda(c.valorTotal)}</td>
                   <td>
                     <span
@@ -374,11 +414,12 @@ export default function ViewMovimentacaoFinanceira({
                     </span>
                   </td>
                   <td>
-                    {new Date(
-                      `${c.dataVencimento}T12:00:00`,
-                    ).toLocaleDateString("pt-BR")}
+                    {c.dataVencimento
+                      ? new Date(
+                          `${c.dataVencimento}T12:00:00`,
+                        ).toLocaleDateString("pt-BR")
+                      : "—"}
                   </td>
-                  <td>{c.baixadaEm ? formatarDataHora(c.baixadaEm) : "—"}</td>
                 </tr>
               ))}
               {!contasFiltradas.length && (
@@ -448,6 +489,66 @@ export default function ViewMovimentacaoFinanceira({
             await carregar();
           }}
         />
+      )}
+      {estornoSelecionado && (
+        <div className="fundo-modal">
+          <section
+            className="modal-parcelas modal-estorno"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="titulo-estorno"
+          >
+            <h2 id="titulo-estorno">
+              Estornar{" "}
+              {estornoSelecionado.tipo === "PAGAR"
+                ? "pagamento"
+                : "recebimento"}
+            </h2>
+            <p className="subtitulo">{estornoSelecionado.descricao}</p>
+            <label className="rotulo-campo">
+              Parcela baixada
+              <select
+                className="campo-formulario"
+                value={parcelaEstorno}
+                onChange={(evento) => setParcelaEstorno(evento.target.value)}
+                required
+              >
+                <option value="">Selecione a parcela</option>
+                {estornoSelecionado.parcelas
+                  .filter((parcela) => parcela.situacao !== "PENDENTE")
+                  .map((parcela) => (
+                    <option key={parcela.numero} value={parcela.numero}>
+                      {parcela.numero}/{estornoSelecionado.parcelas.length} ·{" "}
+                      {moeda(parcela.valor)}
+                      {parcela.baixadaEm
+                        ? ` · ${formatarDataHora(parcela.baixadaEm)}`
+                        : ""}
+                    </option>
+                  ))}
+              </select>
+            </label>
+            <div className="acoes-formulario">
+              <button
+                className="botao-primario botao-ajustado"
+                type="button"
+                disabled={!parcelaEstorno}
+                onClick={estornarParcelaSelecionada}
+              >
+                Estornar parcela
+              </button>
+              <button
+                className="botao-secundario"
+                type="button"
+                onClick={() => {
+                  setEstornoSelecionado(null);
+                  setParcelaEstorno("");
+                }}
+              >
+                Cancelar
+              </button>
+            </div>
+          </section>
+        </div>
       )}
     </>
   );

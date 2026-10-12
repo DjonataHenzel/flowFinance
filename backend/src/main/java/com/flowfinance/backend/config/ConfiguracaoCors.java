@@ -20,9 +20,12 @@ public class ConfiguracaoCors implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registro) {
         registro.addMapping("/api/**")
-                .allowedOriginPatterns("http://localhost:*", "http://127.0.0.1:*")
+                .allowedOriginPatterns(
+                        "https://flowfinance.ddns.net",
+                        "http://localhost:*",
+                        "http://127.0.0.1:*")
                 .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
-                .allowedHeaders("*")
+                .allowedHeaders("Content-Type", "Authorization")
                 .allowCredentials(true);
     }
 }

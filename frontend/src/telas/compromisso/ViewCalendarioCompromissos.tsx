@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { excluirCompromisso, listarCompromissos } from "../../api";
+import {
+  alterarSituacaoCompromisso,
+  excluirCompromisso,
+  listarCompromissos,
+} from "../../api";
 import type { CompromissoResumo } from "../../api";
 import Compromisso from "./Compromisso";
 
@@ -141,6 +145,17 @@ export default function ViewCalendarioCompromissos() {
     }
   }
 
+  async function marcarResolvido() {
+    if (!menu) return;
+    try {
+      await alterarSituacaoCompromisso(menu.compromisso.id, "RESOLVIDO");
+      setMenu(null);
+      await carregar();
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : "Erro ao resolver compromisso.");
+    }
+  }
+
   return (
     <section className="painel calendario-painel">
       <div className="cabecalho-listagem calendario-cabecalho">
@@ -245,12 +260,12 @@ export default function ViewCalendarioCompromissos() {
                           {compromisso.situacao === "NOTIFICADO"
                             ? "Notificado"
                             : compromisso.situacao === "CONCLUIDO"
-                            ? "Concluído"
-                            : compromisso.situacao === "RESOLVIDO"
-                            ? "Resolvido"
-                            : compromisso.situacao === "REAGENDADO"
-                              ? "Reagendado"
-                              : "Pendente"}
+                              ? "Concluído"
+                              : compromisso.situacao === "RESOLVIDO"
+                                ? "Resolvido"
+                                : compromisso.situacao === "REAGENDADO"
+                                  ? "Reagendado"
+                                  : "Pendente"}
                         </small>
                       </button>
                     ))}
@@ -269,6 +284,10 @@ export default function ViewCalendarioCompromissos() {
             onClick={() => setMenu(null)}
           />
           <div className="menu-contexto" style={{ left: menu.x, top: menu.y }}>
+            {menu.compromisso.situacao !== "RESOLVIDO" &&
+              menu.compromisso.situacao !== "CONCLUIDO" && (
+                <button onClick={marcarResolvido}>Marcar como resolvido</button>
+              )}
             <button onClick={duplicar}>Duplicar compromisso</button>
             <button className="acao-perigosa" onClick={excluir}>
               Excluir compromisso

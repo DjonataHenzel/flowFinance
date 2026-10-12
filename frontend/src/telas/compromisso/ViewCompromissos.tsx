@@ -1,11 +1,15 @@
 import { useEffect, useState } from "react";
-import { excluirCompromisso, listarCompromissos } from "../../api";
+import {
+  alterarSituacaoCompromisso,
+  excluirCompromisso,
+  listarCompromissos,
+  listarPessoas,
+} from "../../api";
 import type {
   CompromissoResumo,
   PessoaResumo,
   SituacaoCompromisso,
 } from "../../api";
-import { listarPessoas } from "../../api";
 import { formatarDataHora, formatarPrimeirosNomes } from "../../formatadores";
 import Compromisso from "./Compromisso";
 const situacao = {
@@ -36,8 +40,9 @@ export default function ViewCompromissos() {
     [erro, setErro] = useState(""),
     [descricaoFiltro, setDescricaoFiltro] = useState(""),
     [pessoaFiltro, setPessoaFiltro] = useState(""),
-    [situacaoFiltro, setSituacaoFiltro] =
-      useState<SituacaoCompromisso | "">("PENDENTE"),
+    [situacaoFiltro, setSituacaoFiltro] = useState<SituacaoCompromisso | "">(
+      "PENDENTE",
+    ),
     [dataInicio, setDataInicio] = useState(periodoInicial.inicio),
     [dataFim, setDataFim] = useState(periodoInicial.fim),
     [pessoas, setPessoas] = useState<PessoaResumo[]>([]),
@@ -86,27 +91,35 @@ export default function ViewCompromissos() {
       setErro(e instanceof Error ? e.message : "Erro ao excluir.");
     }
   }
+  async function marcarResolvido() {
+    if (!menu) return;
+    try {
+      await alterarSituacaoCompromisso(menu.id, "RESOLVIDO");
+      setMenu(null);
+      await carregar();
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : "Erro ao resolver compromisso.");
+    }
+  }
   function duplicar() {
     if (!menu) return;
     setEdicao(menu.id);
     setDuplicando(true);
     setMenu(null);
   }
-  const filtradas = lista.filter(
-    (c) => {
-      const data = dataLocal(new Date(c.dataHora));
-      return (
+  const filtradas = lista.filter((c) => {
+    const data = dataLocal(new Date(c.dataHora));
+    return (
       (!descricaoFiltro ||
         c.descricao
           .toLocaleLowerCase("pt-BR")
           .includes(descricaoFiltro.toLocaleLowerCase("pt-BR"))) &&
-        (!pessoaFiltro || c.pessoaIds.includes(Number(pessoaFiltro))) &&
-        (!situacaoFiltro || c.situacao === situacaoFiltro) &&
-        (!dataInicio || data >= dataInicio) &&
-        (!dataFim || data <= dataFim)
-      );
-    },
-  );
+      (!pessoaFiltro || c.pessoaIds.includes(Number(pessoaFiltro))) &&
+      (!situacaoFiltro || c.situacao === situacaoFiltro) &&
+      (!dataInicio || data >= dataInicio) &&
+      (!dataFim || data <= dataFim)
+    );
+  });
   return (
     <section className="painel">
       <div className="cabecalho-listagem">
@@ -256,6 +269,10 @@ export default function ViewCompromissos() {
             onClick={() => setMenu(null)}
           />
           <div className="menu-contexto" style={{ left: menu.x, top: menu.y }}>
+            {lista.find((c) => c.id === menu.id)?.situacao !== "RESOLVIDO" &&
+              lista.find((c) => c.id === menu.id)?.situacao !== "CONCLUIDO" && (
+                <button onClick={marcarResolvido}>Marcar como resolvido</button>
+              )}
             <button onClick={duplicar}>Duplicar compromisso</button>
             <button className="acao-perigosa" onClick={excluir}>
               Excluir compromisso

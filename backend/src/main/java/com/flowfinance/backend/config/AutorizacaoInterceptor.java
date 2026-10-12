@@ -57,7 +57,7 @@ public class AutorizacaoInterceptor implements HandlerInterceptor {
     private FuncionalidadeEnum funcionalidadeNecessaria(HttpServletRequest request) {
         String caminho = request.getRequestURI(), metodo = request.getMethod();
 
-        if (caminho.equals("/api/dashboard"))
+        if (caminho.equals("/api/dashboard") || caminho.startsWith("/api/dashboard/"))
             return FuncionalidadeEnum.VISUALIZAR_DASHBOARD;
 
         if (caminho.equals("/api/relatorios/contas"))

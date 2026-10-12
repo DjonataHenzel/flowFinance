@@ -5,6 +5,7 @@ import ViewMovimentacaoFinanceira from "../movimentacao-financeira/ViewMovimenta
 import ViewPermissoes from "../permissao/ViewPermissoes";
 import ViewUsuario from "../usuario/ViewUsuario";
 import ViewResumoFinanceiro from "./ViewResumoFinanceiro";
+import ViewGraficosComparativos from "./ViewGraficosComparativos";
 import ViewPessoa from "../pessoa/ViewPessoa";
 import ViewCompromissos from "../compromisso/ViewCompromissos";
 import ViewCalendarioCompromissos from "../compromisso/ViewCalendarioCompromissos";
@@ -17,6 +18,7 @@ import ViewSubCategorias from "../subcategoria/ViewSubCategorias";
 type Tela =
   | "inicio"
   | "resumoFinanceiro"
+  | "graficoComparativo"
   | "consultar"
   | "entrada"
   | "saida"
@@ -109,6 +111,9 @@ export default function Home({
                       </span>
                       <button onClick={() => abrir("resumoFinanceiro")}>
                         Resumo financeiro
+                      </button>
+                      <button onClick={() => abrir("graficoComparativo")}>
+                        Gráfico comparativo
                       </button>
                     </>
                   )}
@@ -207,6 +212,9 @@ export default function Home({
         {tela === "resumoFinanceiro" && tem("VISUALIZAR_DASHBOARD") && (
           <ViewResumoFinanceiro />
         )}
+        {tela === "graficoComparativo" && tem("VISUALIZAR_DASHBOARD") && (
+          <ViewGraficosComparativos />
+        )}
         {tela === "consultar" && tem("CONSULTAR_CONTAS") && (
           <ViewMovimentacaoFinanceira
             aoNovo={novaConta}
@@ -220,6 +228,9 @@ export default function Home({
             tipo={tela === "entrada" ? "RECEBER" : "PAGAR"}
             contaId={edicao}
             origemId={origemCopia}
+            podeAlterar={tem("ALTERAR_CONTAS")}
+            podeBaixar={tem("BAIXAR_RECEBER_CONTAS")}
+            podeEstornar={tem("ESTORNAR_BAIXAS")}
             aoConcluir={() => abrir("consultar")}
           />
         )}

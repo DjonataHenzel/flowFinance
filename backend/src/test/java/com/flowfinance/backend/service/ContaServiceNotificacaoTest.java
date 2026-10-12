@@ -3,6 +3,7 @@ package com.flowfinance.backend.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -19,7 +20,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 
-@SuppressWarnings({"rawtypes", "unchecked"})
+@SuppressWarnings({ "rawtypes", "unchecked" })
 class ContaServiceNotificacaoTest {
     private JdbcTemplate jdbc;
     private HttpClient http;
@@ -42,9 +43,9 @@ class ContaServiceNotificacaoTest {
         when(conta.getInt(4)).thenReturn(1);
         when(conta.getBigDecimal(5)).thenReturn(new BigDecimal("1771.52"));
         when(jdbc.query(anyString(), any(RowMapper.class), eq("djonata")))
-            .thenAnswer(invocacao -> List.of(((RowMapper) invocacao.getArgument(1)).mapRow(topico, 0)));
+                .thenAnswer(invocacao -> List.of(((RowMapper) invocacao.getArgument(1)).mapRow(topico, 0)));
         when(jdbc.query(anyString(), any(RowMapper.class), eq("djonata"), eq("NTFY")))
-            .thenAnswer(invocacao -> List.of(((RowMapper) invocacao.getArgument(1)).mapRow(conta, 0)));
+                .thenAnswer(invocacao -> List.of(((RowMapper) invocacao.getArgument(1)).mapRow(conta, 0)));
         HttpResponse resposta = mock(HttpResponse.class);
         when(resposta.statusCode()).thenReturn(200);
         when(http.send(any(), any())).thenReturn(resposta);
@@ -54,5 +55,7 @@ class ContaServiceNotificacaoTest {
         assertEquals(true, resultado.enviado());
         assertEquals(1, resultado.quantidade());
         verify(http).send(any(), any());
+        verify(jdbc).query(contains("pc.data_vencimento=CURRENT_DATE"), any(RowMapper.class), eq("djonata"),
+                eq("NTFY"));
     }
 }

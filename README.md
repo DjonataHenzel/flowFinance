@@ -89,7 +89,7 @@ O backend segue a separação `controller` → `service` → PostgreSQL via `Jdb
 - Contas recorrentes diárias, semanais, mensais ou anuais, centralizadas em um
   único registro com parcelas geradas até dezembro.
 - Contas bancárias vinculadas a um titular e débito automático.
-- Relatório mensal por vencimento, situação e banco de débito automático.
+- Relatório mensal de contas agrupado pela situação das parcelas, com vencimento, categoria, subcategoria, número da parcela e valor; inclui resumo de débitos automáticos por banco e tabela com rolagem horizontal em telas estreitas.
 - Categorias e subcategorias com CRUD completo e vínculo de cada subcategoria à sua categoria.
 - Contas, compromissos, relatórios e demais visualizações com informações de categoria e subcategoria.
 - Agenda e relatório de compromissos por período, incluindo data e horário,
