@@ -3,6 +3,7 @@ import { alterarPapel, cadastrarPapel, listarFuncionalidades } from "../../api";
 import type { Funcionalidade, PapelDetalhe } from "../../api";
 
 const rotulos: Record<Funcionalidade, string> = {
+  PERFIL_CONVIDADO: "Perfil Convidado — somente navegação, sem dados",
   VISUALIZAR_DASHBOARD: "Visualizar dashboard",
   CONSULTAR_CONTAS: "Consultar",
   CADASTRAR_CONTAS: "Cadastrar",
@@ -53,15 +54,30 @@ const grupos: { titulo: string; funcoes: Funcionalidade[] }[] = [
   },
   {
     titulo: "Contas bancárias",
-    funcoes: ["CONSULTAR_CONTAS_BANCARIAS","CADASTRAR_CONTAS_BANCARIAS","ALTERAR_CONTAS_BANCARIAS","EXCLUIR_CONTAS_BANCARIAS"],
+    funcoes: [
+      "CONSULTAR_CONTAS_BANCARIAS",
+      "CADASTRAR_CONTAS_BANCARIAS",
+      "ALTERAR_CONTAS_BANCARIAS",
+      "EXCLUIR_CONTAS_BANCARIAS",
+    ],
   },
   {
     titulo: "Categorias",
-    funcoes: ["CONSULTAR_CATEGORIAS", "CADASTRAR_CATEGORIAS", "ALTERAR_CATEGORIAS", "EXCLUIR_CATEGORIAS"],
+    funcoes: [
+      "CONSULTAR_CATEGORIAS",
+      "CADASTRAR_CATEGORIAS",
+      "ALTERAR_CATEGORIAS",
+      "EXCLUIR_CATEGORIAS",
+    ],
   },
   {
     titulo: "Subcategorias",
-    funcoes: ["CONSULTAR_SUBCATEGORIAS", "CADASTRAR_SUBCATEGORIAS", "ALTERAR_SUBCATEGORIAS", "EXCLUIR_SUBCATEGORIAS"],
+    funcoes: [
+      "CONSULTAR_SUBCATEGORIAS",
+      "CADASTRAR_SUBCATEGORIAS",
+      "ALTERAR_SUBCATEGORIAS",
+      "EXCLUIR_SUBCATEGORIAS",
+    ],
   },
   {
     titulo: "Usuários",
@@ -115,28 +131,52 @@ export default function Permissao({
     listarFuncionalidades()
       .then((lista) => {
         setDisponiveis(lista);
-        if (!registro) setHabilitadas(new Set(lista));
+        if (!registro)
+          setHabilitadas(
+            new Set(lista.filter((f) => f !== "PERFIL_CONVIDADO")),
+          );
       })
       .catch((e) => setErro(e.message));
   }, [registro]);
+  const funcoesNormais = disponiveis.filter((f) => f !== "PERFIL_CONVIDADO");
+  const convidado = habilitadas.has("PERFIL_CONVIDADO");
   const todas =
-    disponiveis.length > 0 && disponiveis.every((f) => habilitadas.has(f));
+    funcoesNormais.length > 0 &&
+    funcoesNormais.every((f) => habilitadas.has(f));
+  const habilitadasNormais = funcoesNormais.filter((f) =>
+    habilitadas.has(f),
+  ).length;
   const configuradas = new Set(grupos.flatMap((grupo) => grupo.funcoes));
-  const outras = disponiveis.filter((f) => !configuradas.has(f));
+  const outras = disponiveis.filter(
+    (f) => f !== "PERFIL_CONVIDADO" && !configuradas.has(f),
+  );
   const gruposExibidos = outras.length
     ? [...grupos, { titulo: "Outras funções", funcoes: outras }]
     : grupos;
   function alternar(f: Funcionalidade) {
     setHabilitadas((atuais) => {
       const novas = new Set(atuais);
-      novas.has(f) ? novas.delete(f) : novas.add(f);
+      if (f === "PERFIL_CONVIDADO") {
+        if (novas.has(f)) novas.delete(f);
+        else {
+          novas.clear();
+          novas.add(f);
+        }
+      } else {
+        novas.has(f) ? novas.delete(f) : novas.add(f);
+        novas.delete("PERFIL_CONVIDADO");
+      }
       return novas;
     });
   }
   function alternarGrupo(funcoes: Funcionalidade[], habilitar: boolean) {
     setHabilitadas((atuais) => {
       const novas = new Set(atuais);
-      funcoes.forEach((f) => habilitar ? novas.add(f) : novas.delete(f));
+      funcoes.forEach((f) => {
+        if (habilitar) novas.add(f);
+        else novas.delete(f);
+      });
+      if (habilitar) novas.delete("PERFIL_CONVIDADO");
       return novas;
     });
   }
@@ -145,7 +185,9 @@ export default function Permissao({
     setSalvando(true);
     setErro("");
     try {
-      const funcoes = [...habilitadas];
+      const funcoes = convidado
+        ? ["PERFIL_CONVIDADO" as const]
+        : [...habilitadas];
       registro
         ? await alterarPapel(registro.id, nome, descricao, ativo, funcoes)
         : await cadastrarPapel(nome, descricao, ativo, funcoes);
@@ -162,6 +204,23 @@ export default function Permissao({
       <p className="subtitulo">
         Defina a permissão e as funções que poderão ser utilizadas no sistema.
       </p>
+      <section className="grupo-funcao">
+        <h3>Perfil de acesso</h3>
+        <label
+          className={`item-funcao ${convidado ? "funcao-habilitada" : ""}`}
+        >
+          <input
+            type="checkbox"
+            checked={convidado}
+            onChange={() => alternar("PERFIL_CONVIDADO")}
+          />
+          <span>{rotulos.PERFIL_CONVIDADO}</span>
+        </label>
+        <small>
+          Ao ativar este perfil, as demais funções são desmarcadas. Ativar outra
+          função desativa o perfil Convidado.
+        </small>
+      </section>
       <div className="grade-dados-papel">
         <label className="rotulo-campo">
           Nome da permissão *
@@ -173,15 +232,33 @@ export default function Permissao({
             onChange={(e) => setNome(e.target.value)}
           />
         </label>
-        <label className="rotulo-campo">Descrição<input className="campo-formulario" value={descricao} maxLength={255} onChange={(e) => setDescricao(e.target.value)}/></label>
-        <label className="rotulo-campo">Situação<select className="campo-formulario" value={ativo ? "ATIVO" : "INATIVO"} onChange={(e) => setAtivo(e.target.value === "ATIVO")}><option value="ATIVO">Ativo</option><option value="INATIVO">Inativo</option></select></label>
+        <label className="rotulo-campo">
+          Descrição
+          <input
+            className="campo-formulario"
+            value={descricao}
+            maxLength={255}
+            onChange={(e) => setDescricao(e.target.value)}
+          />
+        </label>
+        <label className="rotulo-campo">
+          Situação
+          <select
+            className="campo-formulario"
+            value={ativo ? "ATIVO" : "INATIVO"}
+            onChange={(e) => setAtivo(e.target.value === "ATIVO")}
+          >
+            <option value="ATIVO">Ativo</option>
+            <option value="INATIVO">Inativo</option>
+          </select>
+        </label>
       </div>
       <section className="secao-funcoes">
         <div className="cabecalho-funcoes">
           <div>
             <h2>Funções do sistema</h2>
             <small>
-              {habilitadas.size} de {disponiveis.length} habilitadas
+              {habilitadasNormais} de {funcoesNormais.length} habilitadas
             </small>
           </div>
           <label className="alternar-todas">
@@ -189,7 +266,7 @@ export default function Permissao({
               type="checkbox"
               checked={todas}
               onChange={(e) =>
-                setHabilitadas(new Set(e.target.checked ? disponiveis : []))
+                setHabilitadas(new Set(e.target.checked ? funcoesNormais : []))
               }
             />{" "}
             Habilitar todas
@@ -201,10 +278,28 @@ export default function Permissao({
               disponiveis.includes(f),
             );
             if (!funcoes.length) return null;
-            const grupoCompleto=funcoes.every((f)=>habilitadas.has(f));
+            const grupoCompleto = funcoes.every((f) => habilitadas.has(f));
             return (
-              <section className={`grupo-funcao ${grupo.titulo === "Contas" ? "grupo-funcao-amplo" : ""}`} key={grupo.titulo}>
-                <div className="titulo-grupo-funcao"><h3>{grupo.titulo}</h3><label title={`Habilitar todas as funções de ${grupo.titulo}`}><input type="checkbox" checked={grupoCompleto} onChange={(e)=>alternarGrupo(funcoes,e.target.checked)}/><span>{funcoes.filter((f)=>habilitadas.has(f)).length}/{funcoes.length}</span></label></div>
+              <section
+                className={`grupo-funcao ${grupo.titulo === "Contas" ? "grupo-funcao-amplo" : ""}`}
+                key={grupo.titulo}
+              >
+                <div className="titulo-grupo-funcao">
+                  <h3>{grupo.titulo}</h3>
+                  <label
+                    title={`Habilitar todas as funções de ${grupo.titulo}`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={grupoCompleto}
+                      onChange={(e) => alternarGrupo(funcoes, e.target.checked)}
+                    />
+                    <span>
+                      {funcoes.filter((f) => habilitadas.has(f)).length}/
+                      {funcoes.length}
+                    </span>
+                  </label>
+                </div>
                 <div className="grade-funcoes">
                   {funcoes.map((f) => (
                     <label
@@ -227,7 +322,11 @@ export default function Permissao({
       </section>
       {erro && <p className="mensagem-erro">{erro}</p>}
       <div className="acoes-formulario">
-        <button className="botao-primario botao-ajustado" disabled={salvando}>
+        <button
+          type="submit"
+          className="botao-primario botao-ajustado"
+          disabled={salvando}
+        >
           {salvando ? "Salvando..." : "Salvar"}
         </button>
         <button className="botao-secundario" type="button" onClick={aoCancelar}>

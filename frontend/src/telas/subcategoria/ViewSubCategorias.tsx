@@ -82,7 +82,7 @@ export default function ViewSubCategorias({
             Detalhe suas movimentações e compromissos dentro de cada categoria.
           </p>
         </div>
-        {tem("CADASTRAR_SUBCATEGORIAS") && (
+        {(tem("CADASTRAR_SUBCATEGORIAS") || tem("PERFIL_CONVIDADO")) && (
           <button className="botao-adicionar" onClick={() => setNovo(true)}>
             + Nova subcategoria
           </button>

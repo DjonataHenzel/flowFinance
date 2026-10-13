@@ -1,6 +1,7 @@
 package com.flowfinance.backend.model;
 
 public enum FuncionalidadeEnum {
+    PERFIL_CONVIDADO,
     VISUALIZAR_DASHBOARD,
     CONSULTAR_CONTAS,
     CADASTRAR_CONTAS,

@@ -48,7 +48,9 @@ export default function ViewContasBancarias({
       setLista(await listarContasBancarias());
       setErro("");
     } catch (e) {
-      setErro(e instanceof Error ? e.message : "Erro ao carregar contas bancárias.");
+      setErro(
+        e instanceof Error ? e.message : "Erro ao carregar contas bancárias.",
+      );
     }
   }
 
@@ -82,7 +84,9 @@ export default function ViewContasBancarias({
       await carregar();
     } catch (e) {
       setMenu(null);
-      setErro(e instanceof Error ? e.message : "Erro ao excluir a conta bancária.");
+      setErro(
+        e instanceof Error ? e.message : "Erro ao excluir a conta bancária.",
+      );
     }
   }
 
@@ -97,7 +101,7 @@ export default function ViewContasBancarias({
               : "Contas bancárias que podem ser vinculadas aos lançamentos."}
           </p>
         </div>
-        {tem("CADASTRAR_CONTAS_BANCARIAS") && (
+        {(tem("CADASTRAR_CONTAS_BANCARIAS") || tem("PERFIL_CONVIDADO")) && (
           <button className="botao-adicionar" onClick={() => setNovo(true)}>
             + Nova conta bancária
           </button>
@@ -208,16 +212,13 @@ function Formulario({
           Number(pessoaId),
         );
       } else {
-        await cadastrarContaBancaria(
-          banco,
-          agencia,
-          numero,
-          Number(pessoaId),
-        );
+        await cadastrarContaBancaria(banco, agencia, numero, Number(pessoaId));
       }
       aoSalvar();
     } catch (e) {
-      setErro(e instanceof Error ? e.message : "Erro ao salvar a conta bancária.");
+      setErro(
+        e instanceof Error ? e.message : "Erro ao salvar a conta bancária.",
+      );
     } finally {
       setSalvando(false);
     }
@@ -292,11 +293,7 @@ function Formulario({
         >
           {salvando ? "Salvando..." : "Salvar"}
         </button>
-        <button
-          type="button"
-          className="botao-secundario"
-          onClick={aoCancelar}
-        >
+        <button type="button" className="botao-secundario" onClick={aoCancelar}>
           Voltar
         </button>
       </div>

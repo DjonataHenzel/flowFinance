@@ -285,7 +285,7 @@ export default function ViewMovimentacaoFinanceira({
               <IconeNotificacao />
               {preparandoNotificacao ? "Enviando..." : "Notificar vencimentos"}
             </button>
-            {tem("CADASTRAR_CONTAS") && (
+            {(tem("CADASTRAR_CONTAS") || tem("PERFIL_CONVIDADO")) && (
               <button className="botao-adicionar" onClick={aoNovo}>
                 + Nova conta
               </button>

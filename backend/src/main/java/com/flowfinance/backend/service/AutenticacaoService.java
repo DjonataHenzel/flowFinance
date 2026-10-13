@@ -1,11 +1,13 @@
 package com.flowfinance.backend.service;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import java.util.List;
-import java.util.Arrays;
-import java.util.Collections;
+
 import com.flowfinance.backend.model.FuncionalidadeEnum;
 
 @Service
@@ -26,17 +28,47 @@ public class AutenticacaoService {
     }
 
     public UsuarioAutenticado dadosUsuario(String usuario) {
-        return jdbc.query(
-                "SELECT u.papel_id,p.nome,COALESCE(p.ativo,FALSE) FROM usuario u LEFT JOIN papeis p ON p.id=u.papel_id WHERE u.usuario=? AND u.ativo=TRUE",
-                (r, n) -> {
-                    Long papelId = r.getObject(1, Long.class);
-                    List<FuncionalidadeEnum> funcoes = papelId == null ? Arrays.asList(FuncionalidadeEnum.values())
-                            : r.getBoolean(3)
-                                    ? jdbc.query("SELECT funcionalidade FROM papel_funcionalidades WHERE papel_id=?",
-                                            (f, x) -> FuncionalidadeEnum.valueOf(f.getString(1)), papelId)
-                                    : Collections.emptyList();
-                    return new UsuarioAutenticado(usuario, papelId, r.getString(2), funcoes);
-                }, usuario).stream().findFirst().orElse(null);
+        return jdbc.query("""
+                SELECT u.papel_id, p.nome, COALESCE(p.ativo, FALSE)
+                  FROM usuario u
+                  LEFT JOIN papeis p ON p.id = u.papel_id
+                 WHERE u.usuario = ? AND u.ativo = TRUE
+                """, (resultado, linha) -> {
+            Long papelId = resultado.getObject(1, Long.class);
+            List<FuncionalidadeEnum> funcionalidades;
+
+            if (papelId == null) {
+                funcionalidades = Arrays.stream(FuncionalidadeEnum.values())
+                        .filter(funcionalidade -> funcionalidade != FuncionalidadeEnum.PERFIL_CONVIDADO)
+                        .toList();
+            } else if (resultado.getBoolean(3)) {
+                funcionalidades = jdbc.query("""
+                        SELECT funcionalidade
+                          FROM papel_funcionalidades
+                         WHERE papel_id = ?
+                        """, (linhaFuncionalidade, numeroLinha) -> FuncionalidadeEnum.valueOf(
+                        linhaFuncionalidade.getString(1)), papelId);
+            } else {
+                funcionalidades = Collections.emptyList();
+            }
+
+            if (funcionalidades.contains(FuncionalidadeEnum.PERFIL_CONVIDADO)) {
+                funcionalidades = List.of(
+                        FuncionalidadeEnum.PERFIL_CONVIDADO,
+                        FuncionalidadeEnum.VISUALIZAR_DASHBOARD,
+                        FuncionalidadeEnum.CONSULTAR_CONTAS,
+                        FuncionalidadeEnum.CONSULTAR_CONTAS_BANCARIAS,
+                        FuncionalidadeEnum.CONSULTAR_CATEGORIAS,
+                        FuncionalidadeEnum.CONSULTAR_SUBCATEGORIAS,
+                        FuncionalidadeEnum.CONSULTAR_USUARIOS,
+                        FuncionalidadeEnum.GERENCIAR_PERMISSOES,
+                        FuncionalidadeEnum.CONSULTAR_PESSOAS,
+                        FuncionalidadeEnum.CONSULTAR_COMPROMISSOS);
+            }
+
+            return new UsuarioAutenticado(
+                    usuario, papelId, resultado.getString(2), funcionalidades);
+        }, usuario).stream().findFirst().orElse(null);
     }
 
     public boolean temPermissao(String usuario, FuncionalidadeEnum funcionalidade) {
@@ -46,6 +78,16 @@ public class AutenticacaoService {
                  LEFT JOIN papel_funcionalidades pf ON pf.papel_id=p.id AND pf.funcionalidade=?
                 WHERE u.usuario=? AND u.ativo=TRUE AND (u.papel_id IS NULL OR pf.funcionalidade IS NOT NULL)
                 """, Integer.class, funcionalidade.name(), usuario);
+        return quantidade != null && quantidade > 0;
+    }
+
+    public boolean ehConvidado(String usuario) {
+        Integer quantidade = jdbc.queryForObject("""
+                SELECT COUNT(*) FROM usuario u
+                  JOIN papeis p ON p.id=u.papel_id AND p.ativo=TRUE
+                  JOIN papel_funcionalidades pf ON pf.papel_id=p.id
+                 WHERE u.usuario=? AND u.ativo=TRUE AND pf.funcionalidade=?
+                """, Integer.class, usuario, FuncionalidadeEnum.PERFIL_CONVIDADO.name());
         return quantidade != null && quantidade > 0;
     }
 

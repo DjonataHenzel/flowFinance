@@ -200,6 +200,7 @@ export default function Home({
         </nav>
         <div className="area-usuario">
           <span>Olá, {usuario}</span>
+          {tem("PERFIL_CONVIDADO") && <span>Convidado · somente navegação</span>}
           <button className="botao-sair" onClick={aoSair}>
             Sair
           </button>

@@ -6,10 +6,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-import com.flowfinance.backend.model.FuncionalidadeEnum;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.flowfinance.backend.model.FuncionalidadeEnum;
 
 @Service
 public class PermissaoService {
@@ -27,13 +28,13 @@ public class PermissaoService {
                  GROUP BY p.id
                  ORDER BY p.nome
                 """, (resultado, linha) -> new PapelResumo(
-                        resultado.getLong(1),
-                        resultado.getString(2),
-                        resultado.getString(3),
-                        resultado.getBoolean(4),
-                        resultado.getObject(5, OffsetDateTime.class),
-                        resultado.getInt(6),
-                        FuncionalidadeEnum.values().length));
+                resultado.getLong(1),
+                resultado.getString(2),
+                resultado.getString(3),
+                resultado.getBoolean(4),
+                resultado.getObject(5, OffsetDateTime.class),
+                resultado.getInt(6),
+                FuncionalidadeEnum.values().length));
     }
 
     public Optional<PapelDetalhe> buscar(long id) {
@@ -54,7 +55,7 @@ public class PermissaoService {
         Long id = jdbc.queryForObject(
                 "INSERT INTO papeis (nome, descricao, ativo) VALUES (?, ?, ?) RETURNING id",
                 Long.class, nome.trim(), normalizar(descricao), ativo);
-        gravarFuncionalidades(id, funcionalidades);
+        gravarFuncionalidades(id, normalizarFuncionalidades(funcionalidades));
         return id;
     }
 
@@ -67,7 +68,7 @@ public class PermissaoService {
             return false;
         }
         jdbc.update("DELETE FROM papel_funcionalidades WHERE papel_id = ?", id);
-        gravarFuncionalidades(id, funcionalidades);
+        gravarFuncionalidades(id, normalizarFuncionalidades(funcionalidades));
         return true;
     }
 
@@ -86,6 +87,14 @@ public class PermissaoService {
             jdbc.update("INSERT INTO papel_funcionalidades (papel_id, funcionalidade) VALUES (?, ?)",
                     papelId, funcionalidade.name());
         }
+    }
+
+    static Set<FuncionalidadeEnum> normalizarFuncionalidades(
+            Set<FuncionalidadeEnum> funcionalidades) {
+        if (funcionalidades.contains(FuncionalidadeEnum.PERFIL_CONVIDADO)) {
+            return Set.of(FuncionalidadeEnum.PERFIL_CONVIDADO);
+        }
+        return new HashSet<>(funcionalidades);
     }
 
     private String normalizar(String texto) {

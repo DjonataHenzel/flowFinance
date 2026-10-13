@@ -5,9 +5,9 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 import com.flowfinance.backend.model.FuncionalidadeEnum;
@@ -27,7 +27,8 @@ public class AutorizacaoInterceptor implements HandlerInterceptor {
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)
             throws IOException {
-        if ("OPTIONS".equals(request.getMethod()) || request.getRequestURI().startsWith("/api/autenticacao/"))
+        if ("OPTIONS".equals(request.getMethod())
+                || request.getRequestURI().startsWith("/api/autenticacao/"))
             return true;
 
         if (autenticacao == null)
@@ -36,7 +37,6 @@ public class AutorizacaoInterceptor implements HandlerInterceptor {
         Object usuario = request.getSession(false) == null ? null : request.getSession(false).getAttribute("usuario");
 
         if (usuario == null) {
-
             if (ehDownloadDeAnexo(request)) {
                 String retorno = URLEncoder.encode(request.getRequestURI(), StandardCharsets.UTF_8);
                 response.sendRedirect("/?download=" + retorno);
@@ -44,6 +44,11 @@ public class AutorizacaoInterceptor implements HandlerInterceptor {
             }
 
             return erro(response, 401, "Sessão expirada. Entre novamente.");
+        }
+
+        if (autenticacao.ehConvidado(usuario.toString())) {
+            return erro(response, 403,
+                    "O perfil Convidado permite navegar pelas telas, mas não consultar ou alterar informações.");
         }
 
         FuncionalidadeEnum necessaria = funcionalidadeNecessaria(request);

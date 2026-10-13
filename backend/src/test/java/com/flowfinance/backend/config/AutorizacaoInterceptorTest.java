@@ -1,8 +1,8 @@
 package com.flowfinance.backend.config;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -42,7 +42,9 @@ class AutorizacaoInterceptorTest {
         MockHttpServletResponse response = new MockHttpServletResponse();
         assertFalse(interceptor.preHandle(request, response, new Object()));
         assertEquals(302, response.getStatus());
-        assertEquals("/?download=%2Fapi%2Fcontas%2F10%2Fanexos%2F4%2Fdownload", response.getHeader("Location"));
+        assertEquals(
+                "/?download=%2Fapi%2Fcontas%2F10%2Fanexos%2F4%2Fdownload",
+                response.getHeader("Location"));
     }
 
     @Test
@@ -59,7 +61,8 @@ class AutorizacaoInterceptorTest {
     void devePermitirOperacaoAutorizada() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/dashboard");
         request.getSession().setAttribute("usuario", "teste");
-        when(autenticacao.temPermissao("teste", FuncionalidadeEnum.VISUALIZAR_DASHBOARD)).thenReturn(true);
+        when(autenticacao.temPermissao("teste", FuncionalidadeEnum.VISUALIZAR_DASHBOARD))
+                .thenReturn(true);
         assertTrue(interceptor.preHandle(request, new MockHttpServletResponse(), new Object()));
     }
 
@@ -67,7 +70,8 @@ class AutorizacaoInterceptorTest {
     void devePermitirSerieMensalComPermissaoDeDashboard() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/dashboard/serie-mensal");
         request.getSession().setAttribute("usuario", "teste");
-        when(autenticacao.temPermissao("teste", FuncionalidadeEnum.VISUALIZAR_DASHBOARD)).thenReturn(true);
+        when(autenticacao.temPermissao("teste", FuncionalidadeEnum.VISUALIZAR_DASHBOARD))
+                .thenReturn(true);
         assertTrue(interceptor.preHandle(request, new MockHttpServletResponse(), new Object()));
     }
 
@@ -75,7 +79,8 @@ class AutorizacaoInterceptorTest {
     void deveExigirPermissaoParaContasBancarias() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/contas-bancarias");
         request.getSession().setAttribute("usuario", "teste");
-        when(autenticacao.temPermissao("teste", FuncionalidadeEnum.CADASTRAR_CONTAS_BANCARIAS)).thenReturn(false);
+        when(autenticacao.temPermissao("teste", FuncionalidadeEnum.CADASTRAR_CONTAS_BANCARIAS))
+                .thenReturn(false);
 
         MockHttpServletResponse response = new MockHttpServletResponse();
         assertFalse(interceptor.preHandle(request, response, new Object()));
@@ -86,7 +91,8 @@ class AutorizacaoInterceptorTest {
     void deveProtegerRelatorioDeCompromissos() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/relatorios/compromissos");
         request.getSession().setAttribute("usuario", "teste");
-        when(autenticacao.temPermissao("teste", FuncionalidadeEnum.CONSULTAR_COMPROMISSOS)).thenReturn(true);
+        when(autenticacao.temPermissao("teste", FuncionalidadeEnum.CONSULTAR_COMPROMISSOS))
+                .thenReturn(true);
 
         assertTrue(interceptor.preHandle(request, new MockHttpServletResponse(), new Object()));
     }
@@ -95,11 +101,28 @@ class AutorizacaoInterceptorTest {
     void deveExigirPermissaoParaSubcategorias() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest("PUT", "/api/subcategorias/10");
         request.getSession().setAttribute("usuario", "teste");
-        when(autenticacao.temPermissao("teste", FuncionalidadeEnum.ALTERAR_SUBCATEGORIAS)).thenReturn(false);
+        when(autenticacao.temPermissao("teste", FuncionalidadeEnum.ALTERAR_SUBCATEGORIAS))
+                .thenReturn(false);
 
         MockHttpServletResponse response = new MockHttpServletResponse();
         assertFalse(interceptor.preHandle(request, response, new Object()));
         assertEquals(403, response.getStatus());
+    }
+
+    @Test
+    void deveBloquearLeituraEAlteracaoParaPerfilConvidado() throws Exception {
+        when(autenticacao.ehConvidado("teste")).thenReturn(true);
+
+        for (String metodo : new String[] { "GET", "POST" }) {
+            MockHttpServletRequest request = new MockHttpServletRequest(metodo, "/api/contas");
+            request.getSession().setAttribute("usuario", "teste");
+            MockHttpServletResponse response = new MockHttpServletResponse();
+
+            assertFalse(interceptor.preHandle(request, response, new Object()));
+            assertEquals(403, response.getStatus());
+            assertTrue(response.getContentAsString().contains(
+                    "O perfil Convidado permite navegar pelas telas, mas não consultar ou alterar informações."));
+        }
     }
 
     @Test

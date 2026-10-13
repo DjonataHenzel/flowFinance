@@ -75,7 +75,7 @@ export default function ViewCategorias({
             Organize suas movimentações financeiras por categoria.
           </p>
         </div>
-        {tem("CADASTRAR_CATEGORIAS") && (
+        {(tem("CADASTRAR_CATEGORIAS") || tem("PERFIL_CONVIDADO")) && (
           <button className="botao-adicionar" onClick={() => setNovo(true)}>
             + Nova categoria
           </button>
