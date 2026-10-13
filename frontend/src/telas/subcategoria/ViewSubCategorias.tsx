@@ -114,7 +114,9 @@ export default function ViewSubCategorias({
               >
                 <td>{subcategoria.nome}</td>
                 <td>{subcategoria.categoria}</td>
-                <td>{subcategoria.descricao ?? "—"}</td>
+                <td className="celula-texto-longo">
+                  {subcategoria.descricao ?? "—"}
+                </td>
                 <td>{subcategoria.quantidadeMovimentacoes}</td>
               </tr>
             ))}

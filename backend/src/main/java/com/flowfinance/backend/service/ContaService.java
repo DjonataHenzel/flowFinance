@@ -28,27 +28,40 @@ public class ContaService {
     private final HttpClient httpClient;
     private final String ntfyBaseUrl;
     private final String publicUrl;
+    private final Clock clock;
 
     @Autowired
     public ContaService(JdbcTemplate jdbc, @Value("${ntfy.base-url}") String ntfyBaseUrl,
-            @Value("${app.public-url:http://flowfinance.ddns.net}") String publicUrl) {
-        this(jdbc, ntfyBaseUrl, HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build(), publicUrl);
+            @Value("${app.public-url:http://flowfinance.ddns.net}") String publicUrl,
+            @Value("${app.time-zone:America/Sao_Paulo}") String timeZone) {
+        this(jdbc, ntfyBaseUrl, HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build(), publicUrl,
+                Clock.system(ZoneId.of(timeZone)));
     }
 
     public ContaService(JdbcTemplate jdbc, String ntfyBaseUrl) {
+        this(jdbc, ntfyBaseUrl, Clock.system(ZoneId.of("America/Sao_Paulo")));
+    }
+
+    private ContaService(JdbcTemplate jdbc, String ntfyBaseUrl, Clock clock) {
         this(jdbc, ntfyBaseUrl, HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build(),
-                "http://localhost:8080");
+                "http://localhost:8080", clock);
     }
 
     ContaService(JdbcTemplate jdbc, String ntfyBaseUrl, HttpClient httpClient) {
-        this(jdbc, ntfyBaseUrl, httpClient, "http://localhost:8080");
+        this(jdbc, ntfyBaseUrl, httpClient, "http://localhost:8080",
+                Clock.system(ZoneId.of("America/Sao_Paulo")));
     }
 
-    private ContaService(JdbcTemplate jdbc, String ntfyBaseUrl, HttpClient httpClient, String publicUrl) {
+    ContaService(JdbcTemplate jdbc, String ntfyBaseUrl, HttpClient httpClient, Clock clock) {
+        this(jdbc, ntfyBaseUrl, httpClient, "http://localhost:8080", clock);
+    }
+
+    private ContaService(JdbcTemplate jdbc, String ntfyBaseUrl, HttpClient httpClient, String publicUrl, Clock clock) {
         this.jdbc = jdbc;
         this.httpClient = httpClient;
         this.ntfyBaseUrl = ntfyBaseUrl.replaceAll("/+$", "");
         this.publicUrl = publicUrl.replaceAll("/+$", "");
+        this.clock = clock;
     }
 
     public List<ContaResumo> listar(String usuario) {
@@ -105,21 +118,31 @@ public class ContaService {
     }
 
     public NotificacaoWhatsapp buscarNotificacaoWhatsapp(String usuario) {
-        List<DestinoWhatsapp> destinos = jdbc.query(
-                "SELECT DISTINCT w.numero FROM pessoas_whatsapp w JOIN pessoas p ON p.id=w.pessoa_id JOIN contas c ON c.pessoa_id=p.id OR EXISTS (SELECT 1 FROM contas_pessoas_notificacao cp WHERE cp.conta_id=c.id AND cp.pessoa_id=p.id) JOIN parcelas_contas pc ON pc.conta_id=c.id JOIN usuario u ON u.id=c.usuario_cadastro WHERE u.usuario=? AND p.canal_preferencial='WHATSAPP' AND c.tipo='PAGAR' AND pc.situacao='PENDENTE' AND pc.data_vencimento=CURRENT_DATE ORDER BY w.numero",
-                (r, n) -> new DestinoWhatsapp(r.getString(1)), usuario);
+        List<LocalDate> vencimentos = CalendarioDiasUteis.vencimentosParaNotificar(LocalDate.now(clock));
+        if (vencimentos.isEmpty())
+            throw new IllegalArgumentException("Notificações de contas são enviadas somente em dias úteis.");
+        String sql = "SELECT DISTINCT w.numero FROM pessoas_whatsapp w JOIN pessoas p ON p.id=w.pessoa_id JOIN contas c ON c.pessoa_id=p.id OR EXISTS (SELECT 1 FROM contas_pessoas_notificacao cp WHERE cp.conta_id=c.id AND cp.pessoa_id=p.id) JOIN parcelas_contas pc ON pc.conta_id=c.id JOIN usuario u ON u.id=c.usuario_cadastro WHERE u.usuario=? AND p.canal_preferencial='WHATSAPP' AND c.tipo='PAGAR' AND pc.situacao='PENDENTE' AND pc.data_vencimento IN (%s) ORDER BY w.numero"
+                .formatted(placeholders(vencimentos.size()));
+        List<Object> parametros = new ArrayList<>();
+        parametros.add(usuario);
+        parametros.addAll(vencimentos);
+        List<DestinoWhatsapp> destinos = jdbc.query(sql,
+                (r, n) -> new DestinoWhatsapp(r.getString(1)), parametros.toArray());
         if (destinos.isEmpty())
-            throw new IllegalArgumentException("Associe uma pessoa com WhatsApp a uma parcela vencendo hoje");
+            throw new IllegalArgumentException("Associe uma pessoa com WhatsApp a uma conta pendente para hoje");
         List<String> contatos = destinos.stream().map(DestinoWhatsapp::numero).filter(Objects::nonNull).toList();
-        List<ContaNotificacao> contas = buscarContasPendentesDoCanal(usuario, "WHATSAPP");
+        List<ContaNotificacao> contas = buscarContasPendentesDoCanal(usuario, "WHATSAPP", vencimentos);
         String mensagem = MensagemNotificacaoEnum.montarMensagemContasPendentes(contas);
         return new NotificacaoWhatsapp(contatos, mensagem, contas.size());
     }
 
     public ResultadoNotificacao enviarNotificacaoNtfy(String usuario) {
-        List<String> topicos = jdbc.query(
-                "SELECT DISTINCT n.topico FROM pessoas_ntfy n JOIN pessoas p ON p.id=n.pessoa_id JOIN contas c ON c.pessoa_id=p.id OR EXISTS (SELECT 1 FROM contas_pessoas_notificacao cp WHERE cp.conta_id=c.id AND cp.pessoa_id=p.id) JOIN parcelas_contas pc ON pc.conta_id=c.id JOIN usuario u ON u.id=c.usuario_cadastro WHERE u.usuario=? AND p.canal_preferencial='NTFY' AND c.tipo='PAGAR' AND pc.situacao='PENDENTE' AND pc.data_vencimento=CURRENT_DATE",
-                (r, n) -> r.getString(1), usuario);
+        List<LocalDate> vencimentos = CalendarioDiasUteis.vencimentosParaNotificar(LocalDate.now(clock));
+        List<String> topicos = vencimentos.isEmpty() ? List.of()
+                : jdbc.query(
+                        "SELECT DISTINCT n.topico FROM pessoas_ntfy n JOIN pessoas p ON p.id=n.pessoa_id JOIN contas c ON c.pessoa_id=p.id OR EXISTS (SELECT 1 FROM contas_pessoas_notificacao cp WHERE cp.conta_id=c.id AND cp.pessoa_id=p.id) JOIN parcelas_contas pc ON pc.conta_id=c.id JOIN usuario u ON u.id=c.usuario_cadastro WHERE u.usuario=? AND p.canal_preferencial='NTFY' AND c.tipo='PAGAR' AND pc.situacao='PENDENTE' AND pc.data_vencimento IN (%s)"
+                                .formatted(placeholders(vencimentos.size())),
+                        (r, n) -> r.getString(1), parametrosNotificacao(usuario, vencimentos));
         if (topicos.isEmpty()) {
             boolean possuiTopico = jdbc.queryForObject(
                     "SELECT EXISTS(SELECT 1 FROM pessoas_ntfy n JOIN pessoas p ON p.id=n.pessoa_id JOIN contas c ON c.pessoa_id=p.id OR EXISTS (SELECT 1 FROM contas_pessoas_notificacao cp WHERE cp.conta_id=c.id AND cp.pessoa_id=p.id) JOIN usuario u ON u.id=c.usuario_cadastro WHERE u.usuario=? AND p.canal_preferencial='NTFY')",
@@ -128,7 +151,7 @@ public class ContaService {
                     ? "O tópico ntfy está cadastrado, mas nenhuma parcela vence hoje em conta vinculada a essa pessoa."
                     : "Cadastre um tópico ntfy e vincule a pessoa a uma conta com parcela vencendo hoje.");
         }
-        List<ContaNotificacao> contas = buscarContasPendentesDoCanal(usuario, "NTFY");
+        List<ContaNotificacao> contas = buscarContasPendentesDoCanal(usuario, "NTFY", vencimentos);
         if (contas.isEmpty())
             return new ResultadoNotificacao(false, 0, "Nenhuma parcela vencendo hoje foi encontrada.");
         String mensagem = MensagemNotificacaoEnum.montarMensagemContasPendentes(contas);
@@ -154,6 +177,9 @@ public class ContaService {
     }
 
     public ResultadoNotificacao enviarNotificacaoNtfy(long pessoaId, LocalDate dataReferencia) {
+        List<LocalDate> vencimentos = CalendarioDiasUteis.vencimentosParaNotificar(dataReferencia);
+        if (vencimentos.isEmpty())
+            return new ResultadoNotificacao(false, 0, "Nenhuma conta pendente para notificar em dia não útil.");
         List<String> topicos = jdbc.query("SELECT topico FROM pessoas_ntfy WHERE pessoa_id=? ORDER BY id",
                 (r, n) -> r.getString(1), pessoaId);
         List<ContaNotificacao> contas = jdbc.query("""
@@ -162,12 +188,12 @@ public class ContaService {
                   JOIN parcelas_contas pc ON pc.conta_id=c.id
                   JOIN contas_pessoas_notificacao cp ON cp.conta_id=c.id
                  WHERE cp.pessoa_id=? AND c.tipo='PAGAR' AND pc.situacao='PENDENTE'
-                   AND pc.data_vencimento=?
+                   AND pc.data_vencimento IN (%s)
                  ORDER BY pc.data_vencimento,c.descricao,pc.numero
-                """,
+                """.formatted(placeholders(vencimentos.size())),
                 (r, n) -> criarContaNotificacao(r.getLong(1), r.getString(2), r.getInt(3), r.getInt(4),
                         r.getBigDecimal(5)),
-                pessoaId, dataReferencia);
+                parametrosNotificacao(pessoaId, vencimentos));
         if (topicos.isEmpty() || contas.isEmpty())
             return new ResultadoNotificacao(false, 0, "Nenhuma conta pendente para notificar.");
         String mensagem = MensagemNotificacaoEnum.montarMensagemContasPendentes(contas);
@@ -207,7 +233,8 @@ public class ContaService {
         }
     }
 
-    private List<ContaNotificacao> buscarContasPendentesDoCanal(String usuario, String canal) {
+    private List<ContaNotificacao> buscarContasPendentesDoCanal(String usuario, String canal,
+            List<LocalDate> vencimentos) {
         String tabela = "NTFY".equals(canal) ? "pessoas_ntfy" : "pessoas_whatsapp";
         return jdbc.query(
                 """
@@ -218,13 +245,32 @@ public class ContaService {
                             JOIN %s destino ON destino.pessoa_id=p.id
                             JOIN usuario u ON u.id=c.usuario_cadastro
                          WHERE u.usuario=? AND p.canal_preferencial=? AND c.tipo='PAGAR'
-                             AND pc.situacao='PENDENTE' AND pc.data_vencimento=CURRENT_DATE
+                             AND pc.situacao='PENDENTE' AND pc.data_vencimento IN (%s)
                          ORDER BY c.descricao,pc.numero
                         """
-                        .formatted(tabela),
+                        .formatted(tabela, placeholders(vencimentos.size())),
                 (r, n) -> criarContaNotificacao(r.getLong(1), r.getString(2), r.getInt(3), r.getInt(4),
                         r.getBigDecimal(5)),
-                usuario, canal);
+                parametrosNotificacao(usuario, canal, vencimentos));
+    }
+
+    private static Object[] parametrosNotificacao(Object primeiro, List<LocalDate> vencimentos) {
+        List<Object> parametros = new ArrayList<>();
+        parametros.add(primeiro);
+        parametros.addAll(vencimentos);
+        return parametros.toArray();
+    }
+
+    private static Object[] parametrosNotificacao(Object primeiro, Object segundo, List<LocalDate> vencimentos) {
+        List<Object> parametros = new ArrayList<>();
+        parametros.add(primeiro);
+        parametros.add(segundo);
+        parametros.addAll(vencimentos);
+        return parametros.toArray();
+    }
+
+    private static String placeholders(int quantidade) {
+        return String.join(",", Collections.nCopies(quantidade, "?"));
     }
 
     private ContaNotificacao criarContaNotificacao(long id, String descricao, int parcela, int totalParcelas,

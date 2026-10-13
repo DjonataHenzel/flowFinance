@@ -237,7 +237,7 @@ export default function ViewCompromissos() {
                 }}
               >
                 <td>{formatarDataHora(c.dataHora)}</td>
-                <td>{c.descricao}</td>
+                <td className="celula-texto-longo">{c.descricao}</td>
                 <td>{formatarPrimeirosNomes(c.pessoas)}</td>
                 <td>{c.categoria ?? "Sem categoria"}</td>
                 <td>{c.subcategoria ?? "Sem subcategoria"}</td>

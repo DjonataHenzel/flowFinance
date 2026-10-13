@@ -63,7 +63,9 @@ export default function MovimentacaoFinanceira({
       useState<FrequenciaRecorrencia>("MENSAL");
   const [erro, setErro] = useState(""),
     [salvando, setSalvando] = useState(false),
-    [modal, setModal] = useState(false),
+    [parcelasParaDialog, setParcelasParaDialog] = useState<
+      ParcelaConta[] | null
+    >(null),
     [tipoAtual, setTipoAtual] = useState(tipo);
   const [parcelasAbertas, setParcelasAbertas] = useState(false),
     [anexosAbertos, setAnexosAbertos] = useState(false);
@@ -73,13 +75,21 @@ export default function MovimentacaoFinanceira({
     y: number;
   } | null>(null);
   const [baixandoParcela, setBaixandoParcela] = useState(false);
-  const somaParcelas = parcelas.reduce((s, p) => s + Number(p.valor), 0);
-  const subcategoriasDisponiveis = subcategorias.filter(
-    (s) => s.categoriaId === categoriaId,
+  const somaParcelasCentavos = somarParcelasCentavos(parcelas);
+  const somaParcelas = somaParcelasCentavos / 100;
+  const categoriasContas = categorias.filter(
+    (categoria) => categoria.tipoUtilizacao === "CONTAS",
+  );
+  const idsCategoriasContas = new Set(
+    categoriasContas.map((categoria) => categoria.id),
+  );
+  const subcategoriasDisponiveis = subcategorias.filter((subcategoria) =>
+    categoriaId
+      ? subcategoria.categoriaId === categoriaId
+      : idsCategoriasContas.has(subcategoria.categoriaId),
   );
   const parcelasValidas =
-    recorrente ||
-    Math.round(somaParcelas * 100) === Math.round(moedaParaNumero(valor) * 100);
+    recorrente || somaParcelasCentavos === moedaParaCentavos(valor);
   const bloqueiaEdicao =
     Boolean(contaId) &&
     (!podeAlterar ||
@@ -236,6 +246,26 @@ export default function MovimentacaoFinanceira({
   function preparar(e: FormEvent) {
     e.preventDefault();
     setErro("");
+    const valoresDigitados = new Map(
+      Array.from(
+        e.currentTarget.querySelectorAll<HTMLInputElement>(
+          "[data-numero-parcela]",
+        ),
+        (input) =>
+          [
+            Number(input.dataset.numeroParcela),
+            moedaParaNumero(input.value),
+          ] as const,
+      ),
+    );
+    const parcelasAtuais = parcelas.map((parcela) => ({
+      ...parcela,
+      valor: valoresDigitados.get(parcela.numero) ?? parcela.valor,
+    }));
+    setParcelas(parcelasAtuais);
+    if (!recorrente)
+      setValor(formatarMoeda(somarParcelasCentavos(parcelasAtuais) / 100));
+
     if (moedaParaNumero(valor) <= 0) {
       setErro("Informe um valor maior que zero.");
       return;
@@ -258,6 +288,18 @@ export default function MovimentacaoFinanceira({
       return;
     }
     if (recorrente) {
+      if (
+        parcelasAtuais.length > 0 &&
+        parcelasAtuais.length === Number(quantidade)
+      ) {
+        if (parcelasAtuais.some((parcela) => parcela.valor <= 0)) {
+          setErro("Cada ocorrência deve ter um valor maior que zero.");
+          return;
+        }
+        if (parcelasAtuais.length > 1) setParcelasParaDialog(parcelasAtuais);
+        else salvar(parcelasAtuais);
+        return;
+      }
       const recorrencias = criarParcelasRecorrentes(
         moedaParaNumero(valor),
         vencimento,
@@ -267,15 +309,20 @@ export default function MovimentacaoFinanceira({
       setParcelas(recorrencias);
       setQuantidade(String(recorrencias.length));
       setParcelasAbertas(recorrencias.length > 1);
-      recorrencias.length > 1 ? setModal(true) : salvar(recorrencias);
+      recorrencias.length > 1
+        ? setParcelasParaDialog(recorrencias)
+        : salvar(recorrencias);
       return;
     }
-    if (parcelas.length > 1 && parcelas.length === Number(quantidade)) {
-      if (!parcelasValidas) {
+    if (
+      parcelasAtuais.length > 1 &&
+      parcelasAtuais.length === Number(quantidade)
+    ) {
+      if (somarParcelasCentavos(parcelasAtuais) <= 0) {
         setErro("A soma das parcelas deve ser igual ao valor total.");
         return;
       }
-      salvar(parcelas);
+      setParcelasParaDialog(parcelasAtuais);
       return;
     }
     const novas = criarParcelas(
@@ -284,7 +331,7 @@ export default function MovimentacaoFinanceira({
       vencimento,
     );
     setParcelas(novas);
-    novas.length > 1 ? setModal(true) : salvar(novas);
+    novas.length > 1 ? setParcelasParaDialog(novas) : salvar(novas);
   }
   async function salvar(p: ParcelaConta[]) {
     setSalvando(true);
@@ -292,12 +339,7 @@ export default function MovimentacaoFinanceira({
     try {
       const dados = {
         descricao,
-        valorTotal: recorrente
-          ? Math.round(
-              p.reduce((total, parcela) => total + Number(parcela.valor), 0) *
-                100,
-            ) / 100
-          : moedaParaNumero(valor),
+        valorTotal: somarParcelasCentavos(p) / 100,
         tipo: tipoAtual,
         pessoaIds,
         categoriaId: categoriaId!,
@@ -330,6 +372,10 @@ export default function MovimentacaoFinanceira({
       );
     else if (Number(q) > 0 && valor && vencimento)
       setParcelas(criarParcelas(moedaParaNumero(valor), Number(q), vencimento));
+  }
+  function alterarParcelas(novas: ParcelaConta[]) {
+    setParcelas(novas);
+    setValor(formatarMoeda(somarParcelasCentavos(novas) / 100));
   }
   function atualizarRecorrencias(
     valorAtual = valor,
@@ -519,6 +565,7 @@ export default function MovimentacaoFinanceira({
               min="1"
               value={quantidade}
               onChange={(e) => mudarQuantidade(e.target.value)}
+              onBlur={() => mudarQuantidade(quantidade)}
             />
             <label className="rotulo-campo">Primeiro vencimento *</label>
             <input
@@ -564,7 +611,7 @@ export default function MovimentacaoFinanceira({
                 </p>
                 <TabelaParcelas
                   parcelas={parcelas}
-                  alterar={setParcelas}
+                  alterar={alterarParcelas}
                   podeBaixar={Boolean(contaId && podeBaixar)}
                   podeEstornar={Boolean(contaId && podeEstornar)}
                   abrirMenu={abrirMenuParcela}
@@ -623,13 +670,11 @@ export default function MovimentacaoFinanceira({
                   required
                 >
                   <option value="">Selecione uma categoria</option>
-                  {categorias
-                    .filter((c) => c.tipoUtilizacao === "CONTAS")
-                    .map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.nome}
-                      </option>
-                    ))}
+                  {categoriasContas.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.nome}
+                    </option>
+                  ))}
                 </select>
               </label>
               <label className="rotulo-campo">
@@ -801,7 +846,7 @@ export default function MovimentacaoFinanceira({
             sobre uma parcela pendente para pagar ou receber.
           </p>
         )}
-        {erro && !modal && <p className="mensagem-erro">{erro}</p>}
+        {erro && !parcelasParaDialog && <p className="mensagem-erro">{erro}</p>}
         <div className="acoes-formulario">
           <button
             className="botao-primario botao-ajustado"
@@ -855,16 +900,20 @@ export default function MovimentacaoFinanceira({
           </div>
         </>
       )}
-      {modal && (
+      {parcelasParaDialog && (
         <Modal
-          parcelas={parcelas}
-          total={moedaParaNumero(valor)}
+          parcelas={parcelasParaDialog}
+          totalCentavos={somarParcelasCentavos(parcelasParaDialog)}
           validarTotal={!recorrente}
           erro={erro}
           salvando={salvando}
-          alterar={setParcelas}
-          fechar={() => setModal(false)}
-          salvar={() => salvar(parcelas)}
+          alterar={(novas) => {
+            setParcelas(novas);
+            setParcelasParaDialog(novas);
+            setValor(formatarMoeda(somarParcelasCentavos(novas) / 100));
+          }}
+          fechar={() => setParcelasParaDialog(null)}
+          salvar={() => salvar(parcelasParaDialog)}
         />
       )}
     </>
@@ -895,6 +944,10 @@ function TabelaParcelas({
   podeEstornar?: boolean;
   abrirMenu?: (numero: number, x: number, y: number) => void;
 }) {
+  const [valoresEmEdicao, setValoresEmEdicao] = useState<
+    Record<number, string>
+  >({});
+
   return (
     <div className="tabela-responsiva">
       <table className="tabela-usuarios tabela-parcelas">
@@ -930,16 +983,35 @@ function TabelaParcelas({
                   className="campo-tabela"
                   type="text"
                   inputMode="numeric"
-                  value={formatarMoeda(p.valor)}
-                  onChange={(e) =>
+                  data-numero-parcela={p.numero}
+                  value={valoresEmEdicao[p.numero] ?? formatarMoeda(p.valor)}
+                  onChange={(e) => {
+                    const valorNumerico = moedaParaNumero(e.target.value);
+                    setValoresEmEdicao((atuais) => ({
+                      ...atuais,
+                      [p.numero]: formatarMoeda(valorNumerico),
+                    }));
                     alterar(
                       parcelas.map((x, n) =>
-                        n === i
-                          ? { ...x, valor: moedaParaNumero(e.target.value) }
-                          : x,
+                        n === i ? { ...x, valor: valorNumerico } : x,
                       ),
-                    )
-                  }
+                    );
+                  }}
+                  onBlur={(evento) => {
+                    const valorNumerico = moedaParaNumero(
+                      evento.currentTarget.value,
+                    );
+                    alterar(
+                      parcelas.map((x, n) =>
+                        n === i ? { ...x, valor: valorNumerico } : x,
+                      ),
+                    );
+                    setValoresEmEdicao((atuais) => {
+                      const proximos = { ...atuais };
+                      delete proximos[p.numero];
+                      return proximos;
+                    });
+                  }}
                 />
               </td>
               <td>
@@ -981,7 +1053,7 @@ function TabelaParcelas({
 }
 function Modal({
   parcelas,
-  total,
+  totalCentavos,
   validarTotal,
   erro,
   salvando,
@@ -990,7 +1062,7 @@ function Modal({
   salvar,
 }: {
   parcelas: ParcelaConta[];
-  total: number;
+  totalCentavos: number;
   validarTotal: boolean;
   erro: string;
   salvando: boolean;
@@ -998,8 +1070,8 @@ function Modal({
   fechar: () => void;
   salvar: () => void;
 }) {
-  const soma = parcelas.reduce((s, p) => s + Number(p.valor), 0),
-    ok = !validarTotal || Math.round(soma * 100) === Math.round(total * 100);
+  const somaCentavos = somarParcelasCentavos(parcelas),
+    ok = !validarTotal || somaCentavos === totalCentavos;
   return (
     <div className="fundo-modal">
       <section className="modal-parcelas">
@@ -1012,6 +1084,7 @@ function Modal({
         <div className="acoes-formulario">
           <button
             className="botao-primario botao-ajustado"
+            type="button"
             disabled={!ok || salvando}
             onClick={salvar}
           >
@@ -1077,9 +1150,18 @@ function criarParcelasRecorrentes(
 function formatarMoeda(valor: number) {
   return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
-function moedaParaNumero(valor: string) {
+function moedaParaCentavos(valor: string) {
   const digitos = valor.replace(/\D/g, "");
-  return digitos ? Number(digitos) / 100 : 0;
+  return digitos ? Number(digitos) : 0;
+}
+function moedaParaNumero(valor: string) {
+  return moedaParaCentavos(valor) / 100;
+}
+function somarParcelasCentavos(parcelas: ParcelaConta[]) {
+  return parcelas.reduce(
+    (total, parcela) => total + Math.round(Number(parcela.valor) * 100),
+    0,
+  );
 }
 function mascararMoeda(valor: string) {
   return formatarMoeda(moedaParaNumero(valor));

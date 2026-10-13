@@ -22,11 +22,13 @@ import type {
 export default function Compromisso({
   registro,
   duplicando = false,
+  dataInicial,
   aoSalvar,
   aoCancelar,
 }: {
   registro?: CompromissoResumo;
   duplicando?: boolean;
+  dataInicial?: string;
   aoSalvar: () => void;
   aoCancelar: () => void;
 }) {
@@ -35,7 +37,7 @@ export default function Compromisso({
     [categorias, setCategorias] = useState<Categoria[]>([]),
     [subcategorias, setSubcategorias] = useState<SubCategoria[]>([]),
     [dataHora, setDataHora] = useState(
-      registro ? registro.dataHora.slice(0, 16) : "",
+      registro ? registro.dataHora.slice(0, 16) : (dataInicial ?? ""),
     ),
     [descricao, setDescricao] = useState(registro?.descricao ?? ""),
     [pessoaIds, setPessoaIds] = useState<number[]>(registro?.pessoaIds ?? []),
@@ -70,8 +72,16 @@ export default function Compromisso({
     [buscandoCep, setBuscandoCep] = useState(false),
     [erro, setErro] = useState(""),
     [salvando, setSalvando] = useState(false);
-  const subcategoriasDisponiveis = subcategorias.filter(
-    (s) => s.categoriaId === Number(categoriaId),
+  const categoriasCompromisso = categorias.filter(
+    (categoria) => categoria.tipoUtilizacao === "COMPROMISSOS",
+  );
+  const idsCategoriasCompromisso = new Set(
+    categoriasCompromisso.map((categoria) => categoria.id),
+  );
+  const subcategoriasDisponiveis = subcategorias.filter((subcategoria) =>
+    categoriaId
+      ? subcategoria.categoriaId === Number(categoriaId)
+      : idsCategoriasCompromisso.has(subcategoria.categoriaId),
   );
   useEffect(() => {
     Promise.all([
@@ -333,13 +343,11 @@ export default function Compromisso({
               required
             >
               <option value="">Selecione</option>
-              {categorias
-                .filter((c) => c.tipoUtilizacao === "COMPROMISSOS")
-                .map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.nome}
-                  </option>
-                ))}
+              {categoriasCompromisso.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.nome}
+                </option>
+              ))}
             </select>
           </label>
           <label className="rotulo-campo">

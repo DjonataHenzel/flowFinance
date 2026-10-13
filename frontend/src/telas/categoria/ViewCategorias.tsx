@@ -5,7 +5,11 @@ import {
   excluirCategoria,
   listarCategorias,
 } from "../../api";
-import type { Categoria, Funcionalidade, TipoUtilizacaoCategoria } from "../../api";
+import type {
+  Categoria,
+  Funcionalidade,
+  TipoUtilizacaoCategoria,
+} from "../../api";
 
 export default function ViewCategorias({
   funcionalidades,
@@ -100,8 +104,10 @@ export default function ViewCategorias({
                 }}
               >
                 <td>{c.nome}</td>
-                <td>{c.descricao ?? "—"}</td>
-                <td>{c.tipoUtilizacao === "CONTAS" ? "Contas" : "Compromissos"}</td>
+                <td className="celula-texto-longo">{c.descricao ?? "—"}</td>
+                <td>
+                  {c.tipoUtilizacao === "CONTAS" ? "Contas" : "Compromissos"}
+                </td>
                 <td>{c.quantidadeMovimentacoes}</td>
                 <td>{c.quantidadeSubcategorias}</td>
               </tr>
@@ -151,7 +157,9 @@ function Formulario({
   aoCancelar: () => void;
 }) {
   const [nome, setNome] = useState(registro?.nome ?? ""),
-    [tipoUtilizacao, setTipoUtilizacao] = useState<TipoUtilizacaoCategoria>(registro?.tipoUtilizacao ?? "CONTAS"),
+    [tipoUtilizacao, setTipoUtilizacao] = useState<TipoUtilizacaoCategoria>(
+      registro?.tipoUtilizacao ?? "CONTAS",
+    ),
     [descricao, setDescricao] = useState(registro?.descricao ?? ""),
     [erro, setErro] = useState(""),
     [salvando, setSalvando] = useState(false);
@@ -174,8 +182,29 @@ function Formulario({
     <form className="painel formulario-movimentacao" onSubmit={salvar}>
       <h1>{registro ? "Alterar categoria" : "Nova categoria"}</h1>
       <div className="grade-nome-utilizacao-categoria">
-        <label className="rotulo-campo">Nome *<input className="campo-formulario" value={nome} onChange={(e) => setNome(e.target.value)} maxLength={100} required/></label>
-        <label className="rotulo-campo">Utilização *<select className="campo-formulario" value={tipoUtilizacao} onChange={(e)=>setTipoUtilizacao(e.target.value as TipoUtilizacaoCategoria)}><option value="CONTAS">Contas</option><option value="COMPROMISSOS">Compromissos</option></select></label>
+        <label className="rotulo-campo">
+          Nome *
+          <input
+            className="campo-formulario"
+            value={nome}
+            onChange={(e) => setNome(e.target.value)}
+            maxLength={100}
+            required
+          />
+        </label>
+        <label className="rotulo-campo">
+          Utilização *
+          <select
+            className="campo-formulario"
+            value={tipoUtilizacao}
+            onChange={(e) =>
+              setTipoUtilizacao(e.target.value as TipoUtilizacaoCategoria)
+            }
+          >
+            <option value="CONTAS">Contas</option>
+            <option value="COMPROMISSOS">Compromissos</option>
+          </select>
+        </label>
       </div>
       <label className="rotulo-campo">Descrição</label>
       <textarea

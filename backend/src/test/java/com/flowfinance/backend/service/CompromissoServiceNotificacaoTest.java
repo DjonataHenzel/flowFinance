@@ -7,7 +7,12 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.sql.ResultSet;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -22,7 +27,8 @@ class CompromissoServiceNotificacaoTest {
     void preparar() {
         jdbc = mock(JdbcTemplate.class);
         http = mock(HttpClient.class);
-        service = new CompromissoService(jdbc, "https://ntfy.test", http);
+        Clock clock = Clock.fixed(Instant.parse("2026-08-24T12:00:00Z"), ZoneId.of("America/Sao_Paulo"));
+        service = new CompromissoService(jdbc, "https://ntfy.test", http, clock);
     }
 
     @Test
@@ -36,8 +42,9 @@ class CompromissoServiceNotificacaoTest {
         service.notificarPendentes();
 
         verify(http, times(2)).send(any(HttpRequest.class), anyHandler());
-        verify(jdbc).query(contains("c.situacao IN ('PENDENTE','REAGENDADO','NOTIFICADO')"), any(RowMapper.class));
-        verify(jdbc).query(contains("cp.notificado_em IS NULL OR cp.notificado_em<CURRENT_DATE"), any(RowMapper.class));
+        verify(jdbc).query(contains("CAST(c.data_hora AT TIME ZONE ? AS DATE)<=?"), any(RowMapper.class),
+                eq("America/Sao_Paulo"), eq(LocalDate.of(2026, 8, 24)), eq(LocalTime.of(9, 0)),
+                eq("America/Sao_Paulo"), eq(LocalDate.of(2026, 8, 24)));
         verify(jdbc).update(contains("compromisso_id=? AND pessoa_id=?"), eq(44L), eq(7L));
         verify(jdbc).update(contains("compromisso_id=? AND pessoa_id=?"), eq(44L), eq(8L));
         verify(jdbc, times(1)).update(contains("situacao IN ('PENDENTE','REAGENDADO','NOTIFICADO')"), eq(44L));
@@ -62,7 +69,7 @@ class CompromissoServiceNotificacaoTest {
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
     private void prepararDestinos(ResultSet... resultados) {
-        when(jdbc.query(anyString(), any(RowMapper.class))).thenAnswer(invocacao -> {
+        when(jdbc.query(anyString(), any(RowMapper.class), any(Object[].class))).thenAnswer(invocacao -> {
             RowMapper mapper = invocacao.getArgument(1);
             return java.util.stream.IntStream.range(0, resultados.length)
                     .mapToObj(i -> {

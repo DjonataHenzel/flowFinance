@@ -10,6 +10,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.net.http.HttpClient;
 import java.net.http.HttpResponse;
 import java.sql.ResultSet;
@@ -30,7 +33,8 @@ class ContaServiceNotificacaoTest {
     void preparar() {
         jdbc = mock(JdbcTemplate.class);
         http = mock(HttpClient.class);
-        service = new ContaService(jdbc, "https://ntfy.test", http);
+        service = new ContaService(jdbc, "https://ntfy.test", http,
+                Clock.fixed(Instant.parse("2026-08-24T12:00:00Z"), ZoneId.of("America/Sao_Paulo")));
     }
 
     @Test
@@ -42,10 +46,13 @@ class ContaServiceNotificacaoTest {
         when(conta.getInt(3)).thenReturn(1);
         when(conta.getInt(4)).thenReturn(1);
         when(conta.getBigDecimal(5)).thenReturn(new BigDecimal("1771.52"));
-        when(jdbc.query(anyString(), any(RowMapper.class), eq("djonata")))
-                .thenAnswer(invocacao -> List.of(((RowMapper) invocacao.getArgument(1)).mapRow(topico, 0)));
-        when(jdbc.query(anyString(), any(RowMapper.class), eq("djonata"), eq("NTFY")))
-                .thenAnswer(invocacao -> List.of(((RowMapper) invocacao.getArgument(1)).mapRow(conta, 0)));
+        when(jdbc.query(anyString(), any(RowMapper.class), any(Object[].class))).thenAnswer(invocacao -> {
+            String sql = invocacao.getArgument(0);
+            ResultSet resultado = sql.contains("SELECT DISTINCT n.topico") ? topico
+                    : sql.contains("SELECT DISTINCT c.id") ? conta : null;
+            return resultado == null ? List.of()
+                    : List.of(((RowMapper) invocacao.getArgument(1)).mapRow(resultado, 0));
+        });
         HttpResponse resposta = mock(HttpResponse.class);
         when(resposta.statusCode()).thenReturn(200);
         when(http.send(any(), any())).thenReturn(resposta);
@@ -55,7 +62,7 @@ class ContaServiceNotificacaoTest {
         assertEquals(true, resultado.enviado());
         assertEquals(1, resultado.quantidade());
         verify(http).send(any(), any());
-        verify(jdbc).query(contains("pc.data_vencimento=CURRENT_DATE"), any(RowMapper.class), eq("djonata"),
-                eq("NTFY"));
+        verify(jdbc, org.mockito.Mockito.times(2)).query(contains("pc.data_vencimento IN"),
+                any(RowMapper.class), any(Object[].class));
     }
 }

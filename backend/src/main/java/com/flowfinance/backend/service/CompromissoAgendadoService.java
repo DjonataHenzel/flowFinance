@@ -11,7 +11,7 @@ public class CompromissoAgendadoService {
         this.service = service;
     }
 
-    @Scheduled(cron = "0 * * * * *")
+    @Scheduled(cron = "0 * * * * *", zone = "${app.time-zone:America/Sao_Paulo}")
     public void executar() {
         service.notificarPendentes();
     }

@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   alterarSituacaoCompromisso,
+  baixarAnexoCompromisso,
   excluirCompromisso,
   listarCompromissos,
 } from "../../api";
 import type { CompromissoResumo } from "../../api";
+import { formatarPrimeirosNomes } from "../../formatadores";
 import Compromisso from "./Compromisso";
 
 const nomesMeses = [
@@ -24,6 +26,7 @@ const nomesMeses = [
 const nomesDias = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sab"];
 
 type Menu = { compromisso: CompromissoResumo; x: number; y: number } | null;
+type MenuDia = { data: string; x: number; y: number } | null;
 
 function chaveDia(data: Date) {
   const ano = data.getFullYear();
@@ -37,6 +40,7 @@ function dataCompromisso(valor: string) {
 }
 
 export default function ViewCalendarioCompromissos() {
+  const detalheDialogRef = useRef<HTMLDialogElement>(null);
   const hoje = new Date();
   const [mesAtual, setMesAtual] = useState(
     new Date(hoje.getFullYear(), hoje.getMonth(), 1),
@@ -45,6 +49,11 @@ export default function ViewCalendarioCompromissos() {
   const [edicao, setEdicao] = useState<number | null | undefined>(undefined);
   const [duplicando, setDuplicando] = useState(false);
   const [menu, setMenu] = useState<Menu>(null);
+  const [menuDia, setMenuDia] = useState<MenuDia>(null);
+  const [dataInicial, setDataInicial] = useState("");
+  const [detalhe, setDetalhe] = useState<CompromissoResumo | null>(null);
+  const [anexoBaixando, setAnexoBaixando] = useState<number | null>(null);
+  const [erroDetalhe, setErroDetalhe] = useState("");
   const [erro, setErro] = useState("");
 
   async function carregar() {
@@ -61,6 +70,11 @@ export default function ViewCalendarioCompromissos() {
   useEffect(() => {
     carregar();
   }, []);
+
+  useEffect(() => {
+    if (detalhe && !detalheDialogRef.current?.open)
+      detalheDialogRef.current?.showModal();
+  }, [detalhe]);
 
   const dias = useMemo(() => {
     const inicio = new Date(mesAtual.getFullYear(), mesAtual.getMonth(), 1);
@@ -83,12 +97,18 @@ export default function ViewCalendarioCompromissos() {
 
   const porDia = useMemo(() => {
     const agrupados = new Map<string, CompromissoResumo[]>();
-    lista.forEach((compromisso) => {
-      const chave = chaveDia(dataCompromisso(compromisso.dataHora));
-      const itens = agrupados.get(chave) ?? [];
-      itens.push(compromisso);
-      agrupados.set(chave, itens);
-    });
+    lista
+      .filter(
+        (compromisso) =>
+          compromisso.situacao !== "CONCLUIDO" &&
+          compromisso.situacao !== "RESOLVIDO",
+      )
+      .forEach((compromisso) => {
+        const chave = chaveDia(dataCompromisso(compromisso.dataHora));
+        const itens = agrupados.get(chave) ?? [];
+        itens.push(compromisso);
+        agrupados.set(chave, itens);
+      });
     return agrupados;
   }, [lista]);
 
@@ -97,6 +117,7 @@ export default function ViewCalendarioCompromissos() {
       <Compromisso
         registro={edicao ? lista.find((item) => item.id === edicao) : undefined}
         duplicando={duplicando}
+        dataInicial={dataInicial || undefined}
         aoSalvar={() => {
           setEdicao(undefined);
           setDuplicando(false);
@@ -116,15 +137,28 @@ export default function ViewCalendarioCompromissos() {
     );
   }
 
-  function novo() {
+  function novo(data?: string) {
     setDuplicando(false);
+    setDataInicial(data ?? "");
     setEdicao(null);
+    setMenuDia(null);
+  }
+
+  function abrirMenuDia(data: Date, evento: React.MouseEvent<HTMLDivElement>) {
+    evento.preventDefault();
+    setMenu(null);
+    setMenuDia({
+      data: chaveDia(data),
+      x: Math.max(8, Math.min(evento.clientX, window.innerWidth - 200)),
+      y: Math.max(8, Math.min(evento.clientY, window.innerHeight - 90)),
+    });
   }
 
   function editar(compromisso: CompromissoResumo) {
     setDuplicando(false);
     setEdicao(compromisso.id);
     setMenu(null);
+    setMenuDia(null);
   }
 
   function duplicar() {
@@ -156,6 +190,21 @@ export default function ViewCalendarioCompromissos() {
     }
   }
 
+  async function baixarAnexo(anexo: CompromissoResumo["anexos"][number]) {
+    if (!detalhe) return;
+    setAnexoBaixando(anexo.id);
+    setErroDetalhe("");
+    try {
+      await baixarAnexoCompromisso(detalhe.id, anexo);
+    } catch (e) {
+      setErroDetalhe(
+        e instanceof Error ? e.message : "Não foi possível baixar o anexo.",
+      );
+    } finally {
+      setAnexoBaixando(null);
+    }
+  }
+
   return (
     <section className="painel calendario-painel">
       <div className="cabecalho-listagem calendario-cabecalho">
@@ -163,7 +212,7 @@ export default function ViewCalendarioCompromissos() {
           <h1>Calendário de compromissos</h1>
           <p className="subtitulo">Visualize e organize sua agenda mensal.</p>
         </div>
-        <button className="botao-adicionar" onClick={novo}>
+        <button className="botao-adicionar" onClick={() => novo()}>
           + Novo compromisso
         </button>
       </div>
@@ -204,6 +253,9 @@ export default function ViewCalendarioCompromissos() {
               className={`calendario-dia ${noMes ? "" : "calendario-dia-fora"} ${chaveDia(data) === chaveDia(hoje) ? "calendario-dia-hoje" : ""}`}
               key={chaveDia(data)}
               role="gridcell"
+              tabIndex={0}
+              aria-label={`Dia ${data.getDate()}`}
+              onContextMenu={(evento) => abrirMenuDia(data, evento)}
             >
               <span className="numero-dia">{data.getDate()}</span>
               {compromissos.length > 0 && (
@@ -233,11 +285,19 @@ export default function ViewCalendarioCompromissos() {
                     </strong>
                     {compromissos.map((compromisso) => (
                       <button
+                        type="button"
                         className={`item-compromisso item-compromisso-${compromisso.situacao.toLowerCase()}`}
                         key={compromisso.id}
+                        title="Abrir detalhes do compromisso"
+                        onClick={() => {
+                          setErroDetalhe("");
+                          setDetalhe(compromisso);
+                        }}
                         onDoubleClick={() => editar(compromisso)}
                         onContextMenu={(e) => {
                           e.preventDefault();
+                          e.stopPropagation();
+                          setMenuDia(null);
                           setMenu({ compromisso, x: e.clientX, y: e.clientY });
                         }}
                       >
@@ -256,16 +316,8 @@ export default function ViewCalendarioCompromissos() {
                             .join(" · ") || "Sem categoria"}
                         </small>
                         <small>
-                          {compromisso.pessoas.join(", ")} ·{" "}
-                          {compromisso.situacao === "NOTIFICADO"
-                            ? "Notificado"
-                            : compromisso.situacao === "CONCLUIDO"
-                              ? "Concluído"
-                              : compromisso.situacao === "RESOLVIDO"
-                                ? "Resolvido"
-                                : compromisso.situacao === "REAGENDADO"
-                                  ? "Reagendado"
-                                  : "Pendente"}
+                          {formatarPrimeirosNomes(compromisso.pessoas)} ·{" "}
+                          {rotuloSituacao(compromisso.situacao)}
                         </small>
                       </button>
                     ))}
@@ -276,6 +328,152 @@ export default function ViewCalendarioCompromissos() {
           );
         })}
       </div>
+      {detalhe && (
+        <dialog
+          ref={detalheDialogRef}
+          className="fundo-modal detalhe-compromisso-fundo"
+          aria-modal="true"
+          aria-labelledby="titulo-detalhe-compromisso"
+          onClose={() => setDetalhe(null)}
+        >
+          <section className="modal-detalhe-compromisso">
+            <header className="cabecalho-detalhe-compromisso">
+              <span className="rotulo-detalhe-compromisso">
+                {rotuloSituacao(detalhe.situacao)}
+              </span>
+              <button
+                type="button"
+                className="fechar-detalhe-compromisso"
+                aria-label="Fechar detalhes"
+                onClick={() => setDetalhe(null)}
+              >
+                ×
+              </button>
+            </header>
+            <h2 id="titulo-detalhe-compromisso">{detalhe.descricao}</h2>
+            <div className="grade-detalhe-compromisso">
+              <div>
+                <span>Data e horário</span>
+                <strong>
+                  {dataCompromisso(detalhe.dataHora).toLocaleString("pt-BR", {
+                    weekday: "long",
+                    day: "2-digit",
+                    month: "long",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </strong>
+              </div>
+              <div>
+                <span>Notificação</span>
+                <strong>{detalhe.horaNotificacao.slice(0, 5)}</strong>
+              </div>
+              <div>
+                <span>Categoria</span>
+                <strong>
+                  {[detalhe.categoria, detalhe.subcategoria]
+                    .filter(Boolean)
+                    .join(" · ") || "Sem categoria"}
+                </strong>
+              </div>
+              <div>
+                <span>Pessoas</span>
+                <strong>{detalhe.pessoas.join(", ") || "Sem pessoas"}</strong>
+              </div>
+            </div>
+            {(detalhe.logradouro || detalhe.cidade || detalhe.cep) && (
+              <section className="secao-detalhe-compromisso">
+                <h3>Local</h3>
+                <p>
+                  {[
+                    [detalhe.logradouro, detalhe.numero]
+                      .filter(Boolean)
+                      .join(", "),
+                    detalhe.complemento,
+                    detalhe.bairro,
+                    [detalhe.cidade, detalhe.uf].filter(Boolean).join(" - "),
+                    detalhe.cep,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
+              </section>
+            )}
+            <section className="secao-detalhe-compromisso">
+              <h3>WhatsApp</h3>
+              {detalhe.whatsapp.length ? (
+                <ul className="lista-detalhe-compromisso">
+                  {detalhe.whatsapp.map((contato) => (
+                    <li key={`${contato.numero}-${contato.descricao}`}>
+                      <span>
+                        <strong>{contato.descricao}</strong>
+                        <small>{contato.numero}</small>
+                      </span>
+                      <a
+                        className="acao-whatsapp-detalhe"
+                        href={`https://wa.me/${normalizarWhatsappLink(contato.numero)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <IconeWhatsappDetalhe />
+                        Enviar mensagem
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p>Sem WhatsApp vinculado.</p>
+              )}
+            </section>
+            <section className="secao-detalhe-compromisso">
+              <h3>Anexos</h3>
+              {detalhe.anexos.length ? (
+                <ul className="lista-detalhe-compromisso">
+                  {detalhe.anexos.map((anexo) => (
+                    <li key={anexo.id}>
+                      <span>
+                        <strong>{anexo.nomeArquivo}</strong>
+                        <small>
+                          {anexo.descricao} · {formatarTamanho(anexo.tamanho)}
+                        </small>
+                      </span>
+                      <button
+                        type="button"
+                        className="acao-download-detalhe"
+                        disabled={anexoBaixando === anexo.id}
+                        onClick={() => baixarAnexo(anexo)}
+                      >
+                        <IconeDownloadDetalhe />
+                        {anexoBaixando === anexo.id ? "Baixando..." : "Baixar"}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p>Sem anexos.</p>
+              )}
+            </section>
+            {erroDetalhe && <p className="mensagem-erro">{erroDetalhe}</p>}
+            <div className="acoes-detalhe-compromisso">
+              <button
+                type="button"
+                className="botao-acao-detalhe botao-editar-detalhe"
+                onClick={() => editar(detalhe)}
+              >
+                Alterar compromisso
+              </button>
+              <button
+                type="button"
+                className="botao-acao-detalhe botao-fechar-detalhe"
+                onClick={() => setDetalhe(null)}
+              >
+                Fechar
+              </button>
+            </div>
+          </section>
+        </dialog>
+      )}
       {menu && (
         <>
           <button
@@ -295,9 +493,66 @@ export default function ViewCalendarioCompromissos() {
           </div>
         </>
       )}
+      {menuDia && (
+        <>
+          <button
+            type="button"
+            className="fechar-menu-contexto"
+            aria-label="Fechar menu do dia"
+            onClick={() => setMenuDia(null)}
+          />
+          <div
+            className="menu-contexto"
+            style={{ left: menuDia.x, top: menuDia.y }}
+          >
+            <button type="button" onClick={() => novo(`${menuDia.data}T09:00`)}>
+              Adicionar compromisso
+            </button>
+          </div>
+        </>
+      )}
       <small className="ajuda-campo">
-        Dois cliques alteram. No botão direito estão duplicar e excluir.
+        Clique abre os detalhes, duplo clique altera. O botão direito adiciona
+        no dia ou mostra ações do compromisso.
       </small>
     </section>
+  );
+}
+
+function rotuloSituacao(situacao: CompromissoResumo["situacao"]) {
+  return {
+    PENDENTE: "Pendente",
+    NOTIFICADO: "Notificado",
+    RESOLVIDO: "Resolvido",
+    REAGENDADO: "Reagendado",
+    CONCLUIDO: "Concluído",
+  }[situacao];
+}
+
+function normalizarWhatsappLink(numero: string) {
+  const digitos = numero.replace(/\D/g, "");
+  return digitos.startsWith("55") ? digitos : `55${digitos}`;
+}
+
+function formatarTamanho(bytes: number) {
+  return bytes < 1024 * 1024
+    ? `${(bytes / 1024).toFixed(1)} KB`
+    : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function IconeWhatsappDetalhe() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M20 11.5a8 8 0 0 1-11.8 7L4 20l1.5-4.1A8 8 0 1 1 20 11.5Z" />
+      <path d="M9 8.5c.5 2.8 2.2 4.5 5 5l1-1.2c.3-.3.7-.4 1-.2l1.5.7" />
+    </svg>
+  );
+}
+
+function IconeDownloadDetalhe() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 3v12M7 10l5 5 5-5M5 20h14" />
+    </svg>
   );
 }

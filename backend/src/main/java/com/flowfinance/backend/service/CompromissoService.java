@@ -26,22 +26,30 @@ public class CompromissoService {
     private final String ntfyBaseUrl;
     private final HttpClient httpClient;
     private final String publicUrl;
+    private final Clock clock;
 
     @Autowired
     public CompromissoService(JdbcTemplate jdbc, @Value("${ntfy.base-url}") String url,
-            @Value("${app.public-url:http://flowfinance.ddns.net}") String publicUrl) {
-        this(jdbc, url, HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build(), publicUrl);
+            @Value("${app.public-url:http://flowfinance.ddns.net}") String publicUrl,
+            @Value("${app.time-zone:America/Sao_Paulo}") String timeZone) {
+        this(jdbc, url, HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build(), publicUrl,
+                Clock.system(ZoneId.of(timeZone)));
     }
 
     CompromissoService(JdbcTemplate jdbc, String url, HttpClient httpClient) {
-        this(jdbc, url, httpClient, "http://localhost:8080");
+        this(jdbc, url, httpClient, "http://localhost:8080", Clock.system(ZoneId.of("America/Sao_Paulo")));
     }
 
-    private CompromissoService(JdbcTemplate jdbc, String url, HttpClient httpClient, String publicUrl) {
+    CompromissoService(JdbcTemplate jdbc, String url, HttpClient httpClient, Clock clock) {
+        this(jdbc, url, httpClient, "http://localhost:8080", clock);
+    }
+
+    private CompromissoService(JdbcTemplate jdbc, String url, HttpClient httpClient, String publicUrl, Clock clock) {
         this.jdbc = jdbc;
         ntfyBaseUrl = url.replaceAll("/+$", "");
         this.httpClient = httpClient;
         this.publicUrl = publicUrl.replaceAll("/+$", "");
+        this.clock = clock;
     }
 
     public List<CompromissoResumo> listar(String usuario) {
@@ -271,18 +279,22 @@ public class CompromissoService {
     }
 
     public void notificarPendentes() {
+        LocalDate hoje = LocalDate.now(clock);
+        LocalTime agora = LocalTime.now(clock);
+        String timeZone = clock.getZone().getId();
         List<Destino> destinos = jdbc.query(
                 """
                         SELECT DISTINCT ON (c.id,p.id) c.id,p.id,c.data_hora,c.descricao,p.nome,n.topico,cat.nome,sub.nome,c.cep,c.logradouro,c.numero,c.complemento,c.bairro,c.cidade,c.uf
                         FROM compromissos c JOIN compromissos_pessoas_notificacao cp ON cp.compromisso_id=c.id JOIN pessoas p ON p.id=cp.pessoa_id JOIN pessoas_ntfy n ON n.pessoa_id=p.id LEFT JOIN categorias cat ON cat.id=c.categoria_id LEFT JOIN subcategorias sub ON sub.id=c.subcategoria_id
                         WHERE p.canal_preferencial='NTFY' AND c.situacao IN ('PENDENTE','REAGENDADO','NOTIFICADO')
-                        AND CAST(c.data_hora AS DATE)<=CURRENT_DATE AND c.hora_notificacao<=CURRENT_TIME
-                        AND (cp.notificado_em IS NULL OR cp.notificado_em<CURRENT_DATE)
+                        AND CAST(c.data_hora AT TIME ZONE ? AS DATE)<=? AND c.hora_notificacao<=?
+                        AND (cp.notificado_em IS NULL OR CAST(cp.notificado_em AT TIME ZONE ? AS DATE)<?)
                         ORDER BY c.id,p.id,n.id
                         """,
                 (r, n) -> new Destino(r.getLong(1), r.getLong(2), r.getObject(3, OffsetDateTime.class), r.getString(4),
                         r.getString(5), r.getString(6), r.getString(7), r.getString(8), r.getString(9), r.getString(10),
-                        r.getString(11), r.getString(12), r.getString(13), r.getString(14), r.getString(15)));
+                        r.getString(11), r.getString(12), r.getString(13), r.getString(14), r.getString(15)),
+                timeZone, hoje, agora, timeZone, hoje);
         for (Destino d : destinos)
             notificar(d);
     }

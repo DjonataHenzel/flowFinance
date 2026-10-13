@@ -393,7 +393,7 @@ export default function ViewMovimentacaoFinanceira({
                     setMenu({ id: c.id, x: e.clientX, y: e.clientY });
                   }}
                 >
-                  <td>{c.descricao}</td>
+                  <td className="celula-texto-longo">{c.descricao}</td>
                   <td
                     className={
                       c.tipo === "RECEBER" ? "tipo-receber" : "tipo-pagar"
