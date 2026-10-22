@@ -2,6 +2,7 @@ package com.flowfinance.backend.service;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -13,10 +14,14 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import java.util.List;
+import org.mockito.ArgumentCaptor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import com.flowfinance.backend.controller.CompromissoController.CompromissoRequest;
+import com.flowfinance.backend.model.SituacaoCompromissoEnum;
 
 class CompromissoServiceNotificacaoTest {
     private JdbcTemplate jdbc;
@@ -65,6 +70,78 @@ class CompromissoServiceNotificacaoTest {
         verify(jdbc).update(contains("compromisso_id=? AND pessoa_id=?"), eq(44L), eq(7L));
         verify(jdbc, never()).update(contains("compromisso_id=? AND pessoa_id=?"), eq(44L), eq(8L));
         verify(jdbc, never()).update(contains("situacao='NOTIFICADO'"), anyLong());
+    }
+
+    @Test
+    void deveSalvarInstanteEHoraDeNotificacaoInformadosNoHorarioLocal() throws Exception {
+        when(jdbc.queryForObject(anyString(), eq(Integer.class), any(Object[].class))).thenReturn(1);
+        when(jdbc.queryForObject(anyString(), eq(Boolean.class), any(Object[].class))).thenReturn(false);
+        when(jdbc.queryForObject(contains("INSERT INTO compromissos"), eq(Long.class), any(Object[].class)))
+                .thenReturn(44L);
+        OffsetDateTime dataHora = OffsetDateTime.parse("2026-10-22T12:15:00-03:00");
+        CompromissoRequest compromisso = new CompromissoRequest(dataHora, "Reunião", List.of(7L), 4L, null,
+                LocalTime.of(11, 15), SituacaoCompromissoEnum.PENDENTE, null, null, null, null, null, null, null,
+                List.of());
+
+        service.cadastrar(compromisso, null, List.of(), "usuario");
+
+        ArgumentCaptor<Object[]> parametros = ArgumentCaptor.forClass(Object[].class);
+        verify(jdbc).queryForObject(contains("INSERT INTO compromissos"), eq(Long.class), parametros.capture());
+        assertEquals(Instant.parse("2026-10-22T15:15:00Z"), ((OffsetDateTime) parametros.getValue()[0]).toInstant());
+        assertEquals(LocalTime.of(11, 15), parametros.getValue()[3]);
+    }
+
+    @Test
+    void deveUsarHoraLocalUmMinutoAntesDoHorarioDeNotificacao() {
+        verificarHoraConsultada("2026-10-22T11:59:00Z", LocalTime.of(8, 59));
+    }
+
+    @Test
+    void deveUsarHoraLocalExataDoHorarioDeNotificacao() {
+        verificarHoraConsultada("2026-10-22T12:00:00Z", LocalTime.of(9, 0));
+    }
+
+    @Test
+    void deveEnviarNotificacaoSomenteQuandoOHorarioLocalForAlcancado() throws Exception {
+        ResultSet resultado = destino(7L, "ana");
+        when(jdbc.query(anyString(), any(RowMapper.class), any(Object[].class))).thenAnswer(invocacao -> {
+            String sql = invocacao.getArgument(0);
+            if (!sql.contains("SELECT DISTINCT ON"))
+                return List.of();
+            LocalTime horaConsultada = invocacao.getArgument(4);
+            if (horaConsultada.isBefore(LocalTime.of(9, 0)))
+                return List.of();
+            RowMapper mapper = invocacao.getArgument(1);
+            return List.of(mapper.mapRow(resultado, 0));
+        });
+        HttpResponse<String> sucesso = resposta(200);
+        when(http.send(any(HttpRequest.class), anyHandler())).thenReturn(sucesso);
+        when(jdbc.queryForObject(contains("notificado_em IS NULL"), eq(Integer.class), eq(44L)))
+                .thenReturn(0);
+
+        service = new CompromissoService(jdbc, "https://ntfy.test", http,
+                Clock.fixed(Instant.parse("2026-10-22T11:59:00Z"), ZoneId.of("America/Sao_Paulo")));
+        service.notificarPendentes();
+        verifyNoInteractions(http);
+
+        service = new CompromissoService(jdbc, "https://ntfy.test", http,
+                Clock.fixed(Instant.parse("2026-10-22T12:00:00Z"), ZoneId.of("America/Sao_Paulo")));
+        service.notificarPendentes();
+
+        verify(http, times(1)).send(any(HttpRequest.class), anyHandler());
+    }
+
+    private void verificarHoraConsultada(String instante, LocalTime horaEsperada) {
+        service = new CompromissoService(jdbc, "https://ntfy.test", http,
+                Clock.fixed(Instant.parse(instante), ZoneId.of("America/Sao_Paulo")));
+        prepararDestinos();
+
+        service.notificarPendentes();
+
+        verify(jdbc).query(contains("AND c.hora_notificacao<=?"), any(RowMapper.class),
+                eq("America/Sao_Paulo"), eq(LocalDate.of(2026, 10, 22)), eq(horaEsperada),
+                eq("America/Sao_Paulo"), eq(LocalDate.of(2026, 10, 22)));
+        verifyNoInteractions(http);
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })

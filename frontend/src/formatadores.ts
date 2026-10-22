@@ -12,6 +12,12 @@ export function formatarDataHora(valor: string | Date) {
   );
 }
 
+export function formatarDataHoraInput(valor: string) {
+  const data = new Date(valor);
+  const doisDigitos = (numero: number) => String(numero).padStart(2, "0");
+  return `${data.getFullYear()}-${doisDigitos(data.getMonth() + 1)}-${doisDigitos(data.getDate())}T${doisDigitos(data.getHours())}:${doisDigitos(data.getMinutes())}`;
+}
+
 export function primeiroNome(nome: string) {
   return nome.trim().split(/\s+/, 1)[0] ?? "";
 }

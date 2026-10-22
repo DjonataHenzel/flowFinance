@@ -19,6 +19,7 @@ import type {
   AnexoNovo,
   ContatoWhatsappCompromisso,
 } from "../../api";
+import { formatarDataHoraInput } from "../../formatadores";
 export default function Compromisso({
   registro,
   duplicando = false,
@@ -37,7 +38,7 @@ export default function Compromisso({
     [categorias, setCategorias] = useState<Categoria[]>([]),
     [subcategorias, setSubcategorias] = useState<SubCategoria[]>([]),
     [dataHora, setDataHora] = useState(
-      registro ? registro.dataHora.slice(0, 16) : (dataInicial ?? ""),
+      registro ? formatarDataHoraInput(registro.dataHora) : (dataInicial ?? ""),
     ),
     [descricao, setDescricao] = useState(registro?.descricao ?? ""),
     [pessoaIds, setPessoaIds] = useState<number[]>(registro?.pessoaIds ?? []),
