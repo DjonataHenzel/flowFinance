@@ -16,10 +16,21 @@ O perfil convidado é apenas para navegar pelas telas e conhecer o projeto e seu
 - Contas, parcelas, recorrências, anexos, baixas e estornos.
 - Categorias, subcategorias, contas bancárias e relatórios.
 - Compromissos em calendário, com notificações.
+- Documentos vinculados a pessoas, com vários anexos classificados como pessoais, receitas ou exames.
 - Resumo financeiro e gráficos comparativos.
 - Usuários, papéis e permissões.
 
-As telas de contas, relatórios e calendário receberam melhorias de apresentação e responsividade.
+Os anexos de documentos podem ser baixados após autenticação. O acesso aos documentos é limitado ao usuário que os cadastrou, exceto para usuários com permissão de visualizar os cadastros de todos.
+
+## Estrutura do projeto
+
+- `backend/src/main/java/.../controller`: endpoints REST e validação das requisições.
+- `backend/src/main/java/.../service`: regras de negócio e acesso aos dados.
+- `backend/src/main/resources/db/migration`: migrations Flyway versionadas.
+- `backend/src/test/java`: testes automatizados do backend.
+- `frontend/src/api.ts`: chamadas HTTP e tipos compartilhados da API.
+- `frontend/src/telas`: telas React agrupadas por funcionalidade.
+- `frontend/src/estilos.css`: estilos da aplicação.
 
 ## Tecnologias
 
@@ -39,6 +50,8 @@ $env:DB_PASSWORD = "sua_senha"
 ```
 
 As migrations do Flyway são aplicadas automaticamente na inicialização. O script `backend/database/setup.sql` é legado e não deve ser usado para novas instalações.
+
+Os arquivos anexados são armazenados no PostgreSQL. O limite padrão configurado para cada arquivo é 20 MB, e o limite por requisição multipart é 100 MB.
 
 Configurações opcionais do backend:
 

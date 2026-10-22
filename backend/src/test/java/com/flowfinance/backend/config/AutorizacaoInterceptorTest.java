@@ -98,6 +98,29 @@ class AutorizacaoInterceptorTest {
     }
 
     @Test
+    void deveExigirPermissaoParaDocumentos() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/documentos");
+        request.getSession().setAttribute("usuario", "teste");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        when(autenticacao.temPermissao("teste", FuncionalidadeEnum.CONSULTAR_DOCUMENTOS)).thenReturn(false);
+
+        assertFalse(interceptor.preHandle(request, response, new Object()));
+        assertEquals(403, response.getStatus());
+    }
+
+    @Test
+    void deveRedirecionarDownloadDeDocumentoParaLoginQuandoSessaoExpirar() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest("GET",
+                "/api/documentos/10/anexos/4/download");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        assertFalse(interceptor.preHandle(request, response, new Object()));
+        assertEquals(302, response.getStatus());
+        assertEquals("/?download=%2Fapi%2Fdocumentos%2F10%2Fanexos%2F4%2Fdownload",
+                response.getHeader("Location"));
+    }
+
+    @Test
     void deveExigirPermissaoParaSubcategorias() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest("PUT", "/api/subcategorias/10");
         request.getSession().setAttribute("usuario", "teste");

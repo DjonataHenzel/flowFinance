@@ -394,10 +394,8 @@ button, input, select, textarea { font: inherit; }
 .ponto-compromisso { display:block; width:.42rem; height:.42rem; border-radius:50%; background:#38bdf8; }
 .ponto-resolvido { background:#4ade80; }
 .ponto-reagendado { background:#fbbf24; }
-.popup-compromissos-dia { position:absolute; z-index:10; top:calc(100% + .4rem); left:0; display:none; box-sizing:border-box; width:min(260px,calc(100vw - 2rem)); max-height:min(70vh,420px); overflow-y:auto; padding:.65rem; border:1px solid rgba(56,189,248,.3); border-radius:9px; background:#0a1b32; box-shadow:0 16px 34px rgba(0,0,0,.42); }
-.calendario-dia:nth-child(7n + 11) .popup-compromissos-dia,.calendario-dia:nth-child(7n + 12) .popup-compromissos-dia,.calendario-dia:nth-child(7n + 13) .popup-compromissos-dia,.calendario-dia:nth-child(7n + 14) .popup-compromissos-dia { right:0; left:auto; }
-.resumo-compromissos-dia:hover .popup-compromissos-dia,.resumo-compromissos-dia:focus-within .popup-compromissos-dia { display:grid; gap:.4rem; }
-.titulo-popup-dia { color:#7dd3fc; font-size:.78rem; }
+.calendario-dia-com-compromissos { cursor:pointer; }
+.calendario-dia-com-compromissos:hover { background:rgba(14,116,144,.2); }
 .item-compromisso { display:grid; gap:.1rem; width:100%; padding:.45rem; overflow:hidden; border:1px solid rgba(56,189,248,.25); border-radius:6px; color:#dce8f8; background:rgba(14,116,144,.2); text-align:left; cursor:pointer; }
 .item-compromisso:hover { border-color:#38bdf8; background:rgba(14,116,144,.35); }
 .item-compromisso strong { color:#7dd3fc; font-size:.72rem; }
@@ -406,6 +404,12 @@ button, input, select, textarea { font: inherit; }
 .item-compromisso-resolvido { border-color:rgba(74,222,128,.3); background:rgba(20,83,45,.28); }
 .item-compromisso-concluido { border-color:rgba(74,222,128,.3); background:rgba(20,83,45,.28); }
 .item-compromisso-reagendado { border-color:rgba(251,191,36,.35); background:rgba(120,53,15,.25); }
+.calendario-dia-dialog { position:fixed; z-index:40; inset:0; display:grid; place-items:center; box-sizing:border-box; width:100vw; height:100vh; max-width:none; max-height:none; margin:0; padding:1rem; border:0; color:inherit; background:transparent; }
+.calendario-dia-dialog::backdrop { background:rgba(15,23,42,.65); }
+.modal-compromissos-dia { box-sizing:border-box; width:min(560px,100%); max-height:90vh; overflow-y:auto; padding:1.25rem; border:1px solid rgba(56,189,248,.28); border-radius:10px; color:#dce8f8; background:#0a1b32; box-shadow:0 24px 70px rgba(0,0,0,.5); }
+.cabecalho-compromissos-dia { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:1rem; }
+.cabecalho-compromissos-dia h2 { margin:.35rem 0 0; color:#f1f5f9; font-size:1.15rem; text-transform:capitalize; }
+.lista-compromissos-dia { display:grid; gap:.55rem; }
 .detalhe-compromisso-fundo { z-index:40; box-sizing:border-box; width:100vw; height:100vh; max-width:none; max-height:none; margin:0; padding:1rem; border:0; color:inherit; background:transparent; }
 .detalhe-compromisso-fundo::backdrop { background:rgba(15,23,42,.65); }
 .modal-detalhe-compromisso { box-sizing:border-box; width:min(680px,100%); max-height:90vh; overflow-y:auto; padding:1.4rem; border:1px solid rgba(56,189,248,.28); border-radius:10px; color:#dce8f8; background:#0a1b32; box-shadow:0 24px 70px rgba(0,0,0,.5); }
@@ -499,7 +503,7 @@ button, input, select, textarea { font: inherit; }
 :is(.formulario-compromisso,.formulario-movimentacao) .acoes-anexo button { display:grid; place-items:center; width:44px; height:44px; padding:0; border:1px solid rgba(59,130,246,.24); border-radius:10px; color:#60a5fa; background:rgba(37,99,235,.08); }
 :is(.formulario-compromisso,.formulario-movimentacao) .acoes-anexo .remover-anexo { border-color:rgba(248,113,113,.25); color:#f87171; background:rgba(185,28,28,.1); }
 @media(max-width:600px){:is(.formulario-compromisso,.formulario-movimentacao) .lista-anexos li{grid-template-columns:1fr}:is(.formulario-compromisso,.formulario-movimentacao) .dados-anexo{grid-template-columns:minmax(0,120px) minmax(130px,1fr)}:is(.formulario-compromisso,.formulario-movimentacao) .acoes-anexo{justify-content:flex-end}}
-@media (max-width:650px) { .cabecalho-principal { padding: 0 1rem; } .marca { margin-right: .5rem; } .area-usuario span { display: none; } .grade-baixa,.linha-contato,.filtros-pessoas { grid-template-columns:1fr; } .cabecalho-listagem,.acoes-cabecalho { flex-direction:column; } .acoes-formulario { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); } .acoes-formulario .botao-primario,.acoes-formulario .botao-secundario { width:100%; } .calendario-cabecalho { align-items:stretch; } .calendario-controles h2 { min-width:0; font-size:1.05rem; } .calendario-dia { min-height:72px; padding:.3rem; } .calendario-dia-semana { padding:.45rem .1rem; font-size:.65rem; } .indicador-compromissos { padding:.22rem; font-size:.62rem; } .popup-compromissos-dia { left:0; transform:none; } .calendario-dia:nth-child(7n + 10) .popup-compromissos-dia,.calendario-dia:nth-child(7n + 11) .popup-compromissos-dia,.calendario-dia:nth-child(7n + 12) .popup-compromissos-dia,.calendario-dia:nth-child(7n + 13) .popup-compromissos-dia,.calendario-dia:nth-child(7n + 14) .popup-compromissos-dia { right:0; left:auto; } }
+@media (max-width:650px) { .cabecalho-principal { padding: 0 1rem; } .marca { margin-right: .5rem; } .area-usuario span { display: none; } .grade-baixa,.linha-contato,.filtros-pessoas { grid-template-columns:1fr; } .cabecalho-listagem,.acoes-cabecalho { flex-direction:column; } .acoes-formulario { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); } .acoes-formulario .botao-primario,.acoes-formulario .botao-secundario { width:100%; } .calendario-cabecalho { align-items:stretch; } .calendario-controles h2 { min-width:0; font-size:1.05rem; } .calendario-dia { min-height:72px; padding:.3rem; } .calendario-dia-semana { padding:.45rem .1rem; font-size:.65rem; } .indicador-compromissos { padding:.22rem; font-size:.62rem; } }
 
 /* Tema tecnológico escuro */
 .pagina-home { color:#dce8f8; }
@@ -602,3 +606,27 @@ button, input, select, textarea { font: inherit; }
   .formulario-movimentacao .secao-expansivel .tabela-parcelas .campo-tabela { width:100%; min-width:0; padding:.45rem .25rem; font-size:.72rem; }
 }
 @media(max-width:650px){.conteudo-principal{width:calc(100% - 1.25rem);margin:1rem auto}.conteudo-principal>.painel{padding:1rem}.formulario-movimentacao,.formulario-compromisso,.formulario-permissao{width:100%;margin-inline:auto}.calendario-painel{padding:1rem}.calendario-dia{min-width:0}.calendario-dia-semana{overflow:hidden;text-overflow:clip}}
+.formulario-documento { display:grid; width:min(100%,720px); max-width:720px; gap:.25rem; margin:0 auto; }
+.formulario-documento h1 { margin-top:0; }
+.formulario-documento .secao-endereco-compromisso { margin-top:.5rem; }
+.formulario-documento .conteudo-endereco-compromisso { padding-top:.25rem; }
+.lista-anexos-documento .dados-anexo { grid-template-columns:minmax(110px,1fr) minmax(140px,1.4fr) minmax(120px,.8fr); }
+.lista-anexos-documento .tipo-anexo-documento { box-sizing:border-box; min-width:0; min-height:44px; margin:0; }
+.lista-anexos-documento .acoes-anexo { align-self:center; }
+.formulario-documento .acoes-anexo .botao-remover-anexo-documento { display:block; width:auto; height:auto; padding:.5rem .65rem; font:inherit; font-size:.78rem; }
+.botao-remover-anexo-documento { padding:.55rem .7rem; border:1px solid rgba(248,113,113,.35); border-radius:7px; color:#fecaca; background:rgba(127,29,29,.25); font:inherit; font-size:.8rem; cursor:pointer; }
+.formulario-documento .acoes-anexo .botao-remover-anexo-documento,.botao-download-documento { display:inline-flex; align-items:center; justify-content:center; gap:.4rem; }
+.formulario-documento .acoes-anexo .botao-remover-anexo-documento svg,.botao-download-documento svg { width:1rem; height:1rem; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+.lista-documentos { display:grid; gap:.8rem; }
+.cartao-documento { min-width:0; padding:1rem; border:1px solid rgba(56,189,248,.2); border-radius:10px; background:rgba(2,12,29,.24); }
+.cartao-documento>header { align-items:flex-start; margin-bottom:.85rem; }
+.cartao-documento>header p { margin-top:.3rem; }
+.lista-arquivos-documento { display:grid; gap:.5rem; margin:0; padding:0; list-style:none; }
+.lista-arquivos-documento li { display:flex; align-items:center; justify-content:space-between; gap:.75rem; min-width:0; padding:.65rem; border:1px solid rgba(56,189,248,.18); border-radius:8px; background:rgba(14,116,144,.12); }
+.lista-arquivos-documento li>div { display:grid; min-width:0; gap:.2rem; }
+.lista-arquivos-documento strong { overflow-wrap:anywhere; color:#dff5ff; font-size:.88rem; }
+.lista-arquivos-documento span { overflow-wrap:anywhere; color:#8ba9c9; font-size:.76rem; }
+.botao-download-documento { flex:0 0 auto; padding:.5rem .75rem; border:1px solid rgba(56,189,248,.35); border-radius:7px; color:#dff5ff; background:rgba(14,116,144,.25); font:inherit; cursor:pointer; }
+.botao-download-documento:disabled { opacity:.6; cursor:wait; }
+@media(max-width:700px){.lista-anexos-documento .dados-anexo{grid-template-columns:minmax(0,1fr)}.cartao-documento>header{align-items:flex-start;flex-direction:column}}
+@media(max-width:420px){.lista-arquivos-documento li{align-items:flex-start;flex-direction:column}}

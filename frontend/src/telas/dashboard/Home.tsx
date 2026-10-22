@@ -14,6 +14,7 @@ import ViewRelatorioCompromissos from "../compromisso/ViewRelatorioCompromissos"
 import ViewContasBancarias from "../conta-bancaria/ViewContasBancarias";
 import ViewCategorias from "../categoria/ViewCategorias";
 import ViewSubCategorias from "../subcategoria/ViewSubCategorias";
+import ViewDocumentos from "../documento/ViewDocumentos";
 
 type Tela =
   | "inicio"
@@ -31,7 +32,8 @@ type Tela =
   | "relatorioCompromissos"
   | "contaBancaria"
   | "categoria"
-  | "subcategoria";
+  | "subcategoria"
+  | "documentos";
 
 export default function Home({
   usuario,
@@ -195,6 +197,14 @@ export default function Home({
                   </button>
                 </div>
               )}
+              {tem("CONSULTAR_DOCUMENTOS") && (
+                <button
+                  className="botao-menu"
+                  onClick={() => abrir("documentos")}
+                >
+                  Documentos
+                </button>
+              )}
             </div>
           )}
         </nav>
@@ -262,6 +272,9 @@ export default function Home({
         )}
         {tela === "relatorioCompromissos" && tem("CONSULTAR_COMPROMISSOS") && (
           <ViewRelatorioCompromissos />
+        )}
+        {tela === "documentos" && tem("CONSULTAR_DOCUMENTOS") && (
+          <ViewDocumentos funcionalidades={funcionalidades} />
         )}
       </main>
     </div>

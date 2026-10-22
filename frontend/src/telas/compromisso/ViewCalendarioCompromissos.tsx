@@ -41,6 +41,7 @@ function dataCompromisso(valor: string) {
 
 export default function ViewCalendarioCompromissos() {
   const detalheDialogRef = useRef<HTMLDialogElement>(null);
+  const diaDialogRef = useRef<HTMLDialogElement>(null);
   const hoje = new Date();
   const [mesAtual, setMesAtual] = useState(
     new Date(hoje.getFullYear(), hoje.getMonth(), 1),
@@ -50,6 +51,7 @@ export default function ViewCalendarioCompromissos() {
   const [duplicando, setDuplicando] = useState(false);
   const [menu, setMenu] = useState<Menu>(null);
   const [menuDia, setMenuDia] = useState<MenuDia>(null);
+  const [diaSelecionado, setDiaSelecionado] = useState<string | null>(null);
   const [dataInicial, setDataInicial] = useState("");
   const [detalhe, setDetalhe] = useState<CompromissoResumo | null>(null);
   const [anexoBaixando, setAnexoBaixando] = useState<number | null>(null);
@@ -75,6 +77,11 @@ export default function ViewCalendarioCompromissos() {
     if (detalhe && !detalheDialogRef.current?.open)
       detalheDialogRef.current?.showModal();
   }, [detalhe]);
+
+  useEffect(() => {
+    if (diaSelecionado && !diaDialogRef.current?.open)
+      diaDialogRef.current?.showModal();
+  }, [diaSelecionado]);
 
   const dias = useMemo(() => {
     const inicio = new Date(mesAtual.getFullYear(), mesAtual.getMonth(), 1);
@@ -159,6 +166,7 @@ export default function ViewCalendarioCompromissos() {
     setEdicao(compromisso.id);
     setMenu(null);
     setMenuDia(null);
+    setDiaSelecionado(null);
   }
 
   function duplicar() {
@@ -250,11 +258,23 @@ export default function ViewCalendarioCompromissos() {
           const compromissos = porDia.get(chaveDia(data)) ?? [];
           return (
             <div
-              className={`calendario-dia ${noMes ? "" : "calendario-dia-fora"} ${chaveDia(data) === chaveDia(hoje) ? "calendario-dia-hoje" : ""}`}
+              className={`calendario-dia ${noMes ? "" : "calendario-dia-fora"} ${chaveDia(data) === chaveDia(hoje) ? "calendario-dia-hoje" : ""} ${compromissos.length > 0 ? "calendario-dia-com-compromissos" : ""}`}
               key={chaveDia(data)}
               role="gridcell"
               tabIndex={0}
-              aria-label={`Dia ${data.getDate()}`}
+              aria-label={`Dia ${data.getDate()}${compromissos.length > 0 ? `, ${compromissos.length} compromisso(s)` : ""}`}
+              onClick={() => {
+                if (compromissos.length > 0) setDiaSelecionado(chaveDia(data));
+              }}
+              onKeyDown={(evento) => {
+                if (
+                  compromissos.length > 0 &&
+                  (evento.key === "Enter" || evento.key === " ")
+                ) {
+                  evento.preventDefault();
+                  setDiaSelecionado(chaveDia(data));
+                }
+              }}
               onContextMenu={(evento) => abrirMenuDia(data, evento)}
             >
               <span className="numero-dia">{data.getDate()}</span>
@@ -279,55 +299,89 @@ export default function ViewCalendarioCompromissos() {
                         : "compromissos"}
                     </strong>
                   </div>
-                  <div className="popup-compromissos-dia">
-                    <strong className="titulo-popup-dia">
-                      Compromissos do dia
-                    </strong>
-                    {compromissos.map((compromisso) => (
-                      <button
-                        type="button"
-                        className={`item-compromisso item-compromisso-${compromisso.situacao.toLowerCase()}`}
-                        key={compromisso.id}
-                        title="Abrir detalhes do compromisso"
-                        onClick={() => {
-                          setErroDetalhe("");
-                          setDetalhe(compromisso);
-                        }}
-                        onDoubleClick={() => editar(compromisso)}
-                        onContextMenu={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setMenuDia(null);
-                          setMenu({ compromisso, x: e.clientX, y: e.clientY });
-                        }}
-                      >
-                        <strong>
-                          {dataCompromisso(
-                            compromisso.dataHora,
-                          ).toLocaleTimeString("pt-BR", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </strong>
-                        <span>{compromisso.descricao}</span>
-                        <small>
-                          {[compromisso.categoria, compromisso.subcategoria]
-                            .filter(Boolean)
-                            .join(" · ") || "Sem categoria"}
-                        </small>
-                        <small>
-                          {formatarPrimeirosNomes(compromisso.pessoas)} ·{" "}
-                          {rotuloSituacao(compromisso.situacao)}
-                        </small>
-                      </button>
-                    ))}
-                  </div>
                 </div>
               )}
             </div>
           );
         })}
       </div>
+      {diaSelecionado && (
+        <dialog
+          ref={diaDialogRef}
+          className="fundo-modal calendario-dia-dialog"
+          aria-modal="true"
+          aria-labelledby="titulo-compromissos-dia"
+          onClose={() => setDiaSelecionado(null)}
+        >
+          <section className="modal-compromissos-dia">
+            <header className="cabecalho-compromissos-dia">
+              <div>
+                <span className="rotulo-detalhe-compromisso">
+                  Agenda do dia
+                </span>
+                <h2 id="titulo-compromissos-dia">
+                  {new Date(`${diaSelecionado}T00:00:00`).toLocaleDateString(
+                    "pt-BR",
+                    {
+                      weekday: "long",
+                      day: "2-digit",
+                      month: "long",
+                      year: "numeric",
+                    },
+                  )}
+                </h2>
+              </div>
+              <button
+                type="button"
+                className="fechar-detalhe-compromisso"
+                aria-label="Fechar compromissos do dia"
+                onClick={() => setDiaSelecionado(null)}
+              >
+                ×
+              </button>
+            </header>
+            <div className="lista-compromissos-dia">
+              {(porDia.get(diaSelecionado) ?? []).map((compromisso) => (
+                <button
+                  type="button"
+                  className={`item-compromisso item-compromisso-${compromisso.situacao.toLowerCase()}`}
+                  key={compromisso.id}
+                  title="Abrir detalhes do compromisso"
+                  onClick={() => {
+                    setDiaSelecionado(null);
+                    setErroDetalhe("");
+                    setDetalhe(compromisso);
+                  }}
+                  onDoubleClick={() => editar(compromisso)}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setDiaSelecionado(null);
+                    setMenu({ compromisso, x: e.clientX, y: e.clientY });
+                  }}
+                >
+                  <strong>
+                    {dataCompromisso(compromisso.dataHora).toLocaleTimeString(
+                      "pt-BR",
+                      { hour: "2-digit", minute: "2-digit" },
+                    )}
+                  </strong>
+                  <span>{compromisso.descricao}</span>
+                  <small>
+                    {[compromisso.categoria, compromisso.subcategoria]
+                      .filter(Boolean)
+                      .join(" · ") || "Sem categoria"}
+                  </small>
+                  <small>
+                    {formatarPrimeirosNomes(compromisso.pessoas)} ·{" "}
+                    {rotuloSituacao(compromisso.situacao)}
+                  </small>
+                </button>
+              ))}
+            </div>
+          </section>
+        </dialog>
+      )}
       {detalhe && (
         <dialog
           ref={detalheDialogRef}

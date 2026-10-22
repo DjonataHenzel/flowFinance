@@ -37,6 +37,10 @@ const rotulos: Record<Funcionalidade, string> = {
   CADASTRAR_COMPROMISSOS: "Cadastrar",
   ALTERAR_COMPROMISSOS: "Alterar",
   EXCLUIR_COMPROMISSOS: "Excluir",
+  CONSULTAR_DOCUMENTOS: "Consultar",
+  CADASTRAR_DOCUMENTOS: "Cadastrar",
+  ALTERAR_DOCUMENTOS: "Alterar",
+  EXCLUIR_DOCUMENTOS: "Excluir",
 };
 const grupos: { titulo: string; funcoes: Funcionalidade[] }[] = [
   {
@@ -104,6 +108,15 @@ const grupos: { titulo: string; funcoes: Funcionalidade[] }[] = [
       "CADASTRAR_COMPROMISSOS",
       "ALTERAR_COMPROMISSOS",
       "EXCLUIR_COMPROMISSOS",
+    ],
+  },
+  {
+    titulo: "Documentos",
+    funcoes: [
+      "CONSULTAR_DOCUMENTOS",
+      "CADASTRAR_DOCUMENTOS",
+      "ALTERAR_DOCUMENTOS",
+      "EXCLUIR_DOCUMENTOS",
     ],
   },
   { titulo: "Permissões", funcoes: ["GERENCIAR_PERMISSOES"] },

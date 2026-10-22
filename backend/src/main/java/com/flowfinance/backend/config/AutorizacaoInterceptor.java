@@ -106,6 +106,11 @@ public class AutorizacaoInterceptor implements HandlerInterceptor {
                     FuncionalidadeEnum.CADASTRAR_COMPROMISSOS, "PUT", FuncionalidadeEnum.ALTERAR_COMPROMISSOS, "DELETE",
                     FuncionalidadeEnum.EXCLUIR_COMPROMISSOS).get(metodo);
 
+        if (caminho.startsWith("/api/documentos"))
+            return Map.of("GET", FuncionalidadeEnum.CONSULTAR_DOCUMENTOS, "POST",
+                    FuncionalidadeEnum.CADASTRAR_DOCUMENTOS, "PUT", FuncionalidadeEnum.ALTERAR_DOCUMENTOS, "DELETE",
+                    FuncionalidadeEnum.EXCLUIR_DOCUMENTOS).get(metodo);
+
         if (!caminho.startsWith("/api/contas"))
             return null;
 
@@ -126,7 +131,8 @@ public class AutorizacaoInterceptor implements HandlerInterceptor {
     }
 
     private boolean ehDownloadDeAnexo(HttpServletRequest request) {
-        return request.getRequestURI().matches("/api/(contas|compromissos)/\\d+/anexos/\\d+/download");
+        return request.getRequestURI()
+                .matches("/api/(contas|compromissos|documentos)/\\d+/anexos/\\d+/download");
     }
 
     private boolean erro(HttpServletResponse response, int status, String mensagem) throws IOException {
